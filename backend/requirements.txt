@@ -1,0 +1,30 @@
+# Web Framework
+fastapi==0.109.2
+uvicorn[standard]==0.27.1
+python-multipart==0.0.9
+
+# Firebase
+firebase-admin==6.4.0
+
+# OpenAI
+openai==1.12.0
+
+# Google APIs
+googlemaps==4.10.0
+
+# Environment
+python-dotenv==1.0.1
+
+# CORS
+fastapi-cors==0.0.6
+
+# HTTP Client
+httpx==0.26.0
+
+# Data validation
+pydantic==2.6.1
+pydantic-settings==2.1.0
+
+# Utilities
+python-jose[cryptography]==3.3.0
+passlib[bcrypt]==1.7.4
