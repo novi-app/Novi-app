@@ -2,6 +2,7 @@ from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
 import os
+from app.routers import debug
 
 # Load environment variables
 load_dotenv()
@@ -46,6 +47,7 @@ async def root():
 # app.include_router(recommendations.router)
 # app.include_router(interventions.router)
 # app.include_router(analytics.router)
+app.include_router(debug.router)
 
 if __name__ == "__main__":
     import uvicorn
