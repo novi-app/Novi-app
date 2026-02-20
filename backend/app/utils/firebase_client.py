@@ -2,6 +2,10 @@ from __future__ import annotations
 import os
 from typing import Any, Optional
 
+import json
+import base64
+import tempfile
+
 import firebase_admin
 from firebase_admin import credentials, firestore
 from google.auth.exceptions import DefaultCredentialsError
@@ -12,32 +16,39 @@ _db: Optional[firestore.Client] = None
 def initialize_firebase() -> firestore.Client:
     """
     Initialize Firebase Admin SDK at application startup.
-    
-    Local dev:
-      - Expects service account JSON at FIREBASE_CREDENTIALS_PATH
-      - Default: ./firebase-service-account.json
-    
-    Production:
-      - Falls back to default credentials if JSON not found
-    
-    Raises:
-        RuntimeError: If initialization fails
-        FileNotFoundError: If credentials file not found
     """
     global _db
     
-    # Already initialized
     if _db is not None:
         return _db
     
-    # Check if Firebase app already exists (from another initialization)
     if firebase_admin._apps:
         _db = firestore.client()
         return _db
     
+    # Try base64 encoded credentials first (for Railway/cloud deployment)
+    cred_base64 = os.getenv("FIREBASE_CREDENTIALS_BASE64")
+    if cred_base64:
+        try:
+            # Decode base64 credentials
+            cred_json = base64.b64decode(cred_base64).decode('utf-8')
+            cred_dict = json.loads(cred_json)
+            
+            # Write to temporary file (Railway needs a file path)
+            with tempfile.NamedTemporaryFile(mode='w', suffix='.json', delete=False) as f:
+                json.dump(cred_dict, f)
+                temp_path = f.name
+            
+            cred = credentials.Certificate(temp_path)
+            firebase_admin.initialize_app(cred)
+            _db = firestore.client()
+            return _db
+        except Exception as e:
+            raise RuntimeError(f"Failed to initialize Firebase from base64: {e}") from e
+    
+    # Fall back to file path (for local development)
     cred_path = os.getenv("FIREBASE_CREDENTIALS_PATH", "./firebase-service-account.json")
     
-    # Try to load service account credentials
     if os.path.exists(cred_path):
         try:
             cred = credentials.Certificate(cred_path)
@@ -45,21 +56,19 @@ def initialize_firebase() -> firestore.Client:
             _db = firestore.client()
             return _db
         except Exception as e:
-            raise RuntimeError(
-                f"Failed to initialize Firebase with credentials at {cred_path}: {e}"
-            ) from e
+            raise RuntimeError(f"Failed to initialize Firebase with credentials at {cred_path}: {e}") from e
     
-    # Fall back to default credentials (for cloud environments)
+    # Try default credentials as last resort
     try:
         firebase_admin.initialize_app()
         _db = firestore.client()
         return _db
-    except DefaultCredentialsError as e:
+    except Exception as e:
         raise RuntimeError(
             "Firebase Admin initialization failed.\n"
+            "- FIREBASE_CREDENTIALS_BASE64 not set\n"
             f"- Service account JSON not found at: {cred_path}\n"
-            "- Default credentials not available.\n"
-            "- Set FIREBASE_CREDENTIALS_PATH to the correct file path."
+            "- Default credentials not available."
         ) from e
 
 def get_db() -> firestore.Client:
