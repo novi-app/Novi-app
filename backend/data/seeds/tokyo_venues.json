@@ -1,0 +1,674 @@
+[
+    {
+        "place_id": "ChIJV8EJyvWPGGARHWJnaCZRpqY",
+        "name": "Japanese food Wagyu Restaurant (Halal) Steak&Burger-Ramen 5W-Tokyo AkihabaraUeno Beef Dining",
+        "category": "restaurant",
+        "location": {
+            "latitude": 35.7026268,
+            "longitude": 139.778098
+        },
+        "address": "Japan, 〒110-0016 Tokyo, Taito City, Taitō, 2-chōme−5−３ 2F",
+        "rating": 4.8,
+        "price_level": 0,
+        "description": {
+            "text": "This restaurant is certified halal, extremely clean, and the staff are very friendly.\n\nOur hotel was very close by, so we decided to give it a try even though the prices were higher than average and felt a bit out of our usual budget. We ordered ramen just to try it, and I am so glad we did.\n\nThis was honestly the best ramen we’ve ever had. We usually don’t drink the soup broth because of the sodium, but this broth tasted so healthy, rich, and flavorful that we ended up drinking every last drop. Knowing that the restaurant spends over 10 hours slow-cooking the broth really shows in the depth of flavor.\n\nThe ramen is truly authentic, and the Wagyu is absolutely amazing.\nYes, it’s pricey but it is 100% worth it. You won’t find ramen like this anywhere else.\n\n⭐️⭐️⭐️⭐️⭐️",
+            "languageCode": "en"
+        }
+    },
+    {
+        "place_id": "ChIJ1aKIaXCLGGARkyTMVC2TFi8",
+        "name": "Ise Sueyoshi",
+        "category": "restaurant",
+        "location": {
+            "latitude": 35.6586527,
+            "longitude": 139.7235382
+        },
+        "address": "Japan, 〒106-0031 Tokyo, Minato City, Nishiazabu, 4-chōme−2−１５ 水野ビル 3F",
+        "rating": 4.9,
+        "price_level": 0,
+        "description": {
+            "text": "We spent New Year in Tokyo and decided to have Kaiseki in following with traditions. The food was outstanding and service excellent. We enjoyed our dinning experience here thoroughly and will certainly come back again. Chef Tanaka is very creative and passionate about his food. There were so many delicious dishes that we have a hard time deciding which is our favourite. This restaurant is certainly deserving to claim the top spot. Oiishi!",
+            "languageCode": "en"
+        }
+    },
+    {
+        "place_id": "ChIJ9fcZgFWJGGARba-URZY-YKw",
+        "name": "Tapas Molecular Bar",
+        "category": "restaurant",
+        "location": {
+            "latitude": 35.6870501,
+            "longitude": 139.77304949999998
+        },
+        "address": "2-chōme-1-1 Nihonbashimuromachi, Chuo City, Tokyo 103-8328, Japan",
+        "rating": 4.6,
+        "price_level": 4,
+        "description": {
+            "text": "I’ve been wanting to visit this restaurant for quite some time and finally had the opportunity. I was really looking forward to the creativity and a full sensory experience. The chef absolutely delivered on technique, presentation, and overall concept — it’s clear there’s a lot of talent and intention behind each dish.\n\nThat said, while the dishes were impressive in execution, I found the flavors a bit less memorable than expected. Unfortunately, no single dish truly stood out, which was surprising given the complexity and elements involved in each course.\n\nDinner service also felt somewhat rushed, which made it harder to fully take in and appreciate the experience. I also wasn’t a fan of the mocktail I ordered, which unfortunately reminded me of soapy water.\n\nOverall, it’s an entertaining and thoughtfully designed dinner with a very skilled chef — I just wish the pacing and flavors had left a stronger lasting impression.",
+            "languageCode": "en"
+        }
+    },
+    {
+        "place_id": "ChIJVYCAW5CLGGARIvNkkLut6Jw",
+        "name": "NOBU Tokyo",
+        "category": "restaurant",
+        "location": {
+            "latitude": 35.6663129,
+            "longitude": 139.7437919
+        },
+        "address": "Japan, 〒105-0001 Tokyo, Minato City, Toranomon, 4-chōme−1−２８ １Ｆ",
+        "rating": 4.3,
+        "price_level": 3,
+        "description": {
+            "text": "Nobu is honestly my favourite spot ever! The sushi is always so fresh and perfectly prepared. I love the veggie temaki, and of course, the crispy rice — both tuna and salmon are incredible, I honestly can’t pick a favourite. The edamame is cooked to perfection, and the wagyu skewers are definitely one of the highlights of the meal.\n\nThe desserts are simply a work of art — beautiful, delicious, and the perfect way to finish. Watching the chefs in action is such a treat too; it’s not just about the food, it’s part of the whole experience and makes dining here even more special. Nobu never fails to impress and is absolutely one of my all-time favourite dining experiences!",
+            "languageCode": "en"
+        }
+    },
+    {
+        "place_id": "ChIJfQYVKUGLGGARTPG-4xvT0eA",
+        "name": "Mark's Tokyo",
+        "category": "restaurant",
+        "location": {
+            "latitude": 35.6352541,
+            "longitude": 139.7106637
+        },
+        "address": "1-chōme-23-14 Meguro, Meguro City, Tokyo 153-0063, Japan",
+        "rating": 4.9,
+        "price_level": 0,
+        "description": {
+            "text": "You'll come for the excellent food, but you'll leave feeling you have joined Mark's circle of friends. It's equal parts cheffing and chatting. Mark's personal attention to each guest makes it an intimate atmosphere. Guests exchange stories and by the end of the omakase set you have made some friends and learned a whole lot about the food, the locally sourced farm to table ingredients and Mark's story. He is equally interested in your story if you choose to join in the conversational opportunities. It's an experience. You'll want to come back. Mark's Tokyo will become your Tokyo.",
+            "languageCode": "en"
+        }
+    },
+    {
+        "place_id": "ChIJA2lWTYOLGGARX8a8h5uxq4M",
+        "name": "Downtown B's Indian Kitchen, Tokyo",
+        "category": "restaurant",
+        "location": {
+            "latitude": 35.6650193,
+            "longitude": 139.7366868
+        },
+        "address": "3-chōme-4-2 Roppongi, Minato City, Tokyo 106-0032, Japan",
+        "rating": 4.7,
+        "price_level": 2,
+        "description": {
+            "text": "A small restaurant, like many places in Japan, serving Indian cuisine. The food was honestly excellent — flavorful yet light on the stomach, with no feeling of heaviness or excess oil.\n\nWe ordered many dishes and finished everything because it was that good. Even though soup wasn’t on the menu, the person in charge kindly prepared one especially for us, and it turned out delicious. We also asked for the naan to be well cooked, and it came exactly as requested.\n\nPrices are reasonable, and the overall experience was very satisfying.",
+            "languageCode": "en"
+        }
+    },
+    {
+        "place_id": "ChIJKxOIF5iMGGARiFoVm5Ay8W4",
+        "name": "Den",
+        "category": "restaurant",
+        "location": {
+            "latitude": 35.6731762,
+            "longitude": 139.71272159999998
+        },
+        "address": "Japan, 〒150-0001 Tokyo, Shibuya, Jingūmae, 2-chōme−3−１８ 建築家会館ＪＩＡ館",
+        "rating": 4.4,
+        "price_level": 3,
+        "description": {
+            "text": "Den is such a unique experience. It has the friendliest and most caring staff. The owner/chef and his wife are so personable, and we love their dog, who hangs out in the restaurant, also, but doesn’t make his appearance till close. Our family of four did the tasting menu with wine pairing. From the time of arrival, the staff are getting to know you and cooking for you and choosing the wines like they were your personal staff at home. The starter of a cracker sandwich with foie gras and couple of puréed vegetables was such a delicious surprise. This was followed by various soup and fish courses. The not your KFC fried chicken was terrific and also a nice surprise. There was an incredible 20 item salad and a very nice rice course before dessert. Each course was very unique and beautifully presented but the most memorable part of this experience was the exceptional quality of service. i would highly recommend Den!!",
+            "languageCode": "en"
+        }
+    },
+    {
+        "place_id": "ChIJzUe1uZmNGGARuObQRpkmASU",
+        "name": "CENSU TOKYO",
+        "category": "restaurant",
+        "location": {
+            "latitude": 35.6743246,
+            "longitude": 139.71239789999998
+        },
+        "address": "2-chōme-12-9 Jingūmae, Shibuya, Tokyo 150-0001, Japan",
+        "rating": 4.6,
+        "price_level": 0,
+        "description": {
+            "text": "I would rate 10 out of 5 for their food, service and vibe if I could!!! We had their “TAKE” omakase which was great value for 12 dishes. Each dish was amazing in its own way. The wagyu beef and the dumplings in pumpkin sauce were the highlights for me, and my boyfriend’s favorite was the fried cheese sticks with mushroom sauce.\n\nI highly recommend the bar seats on the first floor if you enjoy watching the chefs cook. I’m impressed by their dedication to the food and the communication among the whole team. Their food is innovative and refreshing, if you’re looking for Japanese-style fusion cusine, I highly recommend checking Censu out!\n\nThe staff were super friendly and attentive. They play hip-hop music (mostly from the 90s), the fun and chill vibe really made them stand out from the other traditional Japanese restaurant we tried. I’m so glad we decided to make a relocation here after walking by it during their closed time but were curious because of their cool exterior design. Overall, we had an amazing experience thanks to the whole team at Censu!",
+            "languageCode": "en"
+        }
+    },
+    {
+        "place_id": "ChIJ13sWRHqLGGARX9fpN_Tkxfc",
+        "name": "Sushi Yuu",
+        "category": "restaurant",
+        "location": {
+            "latitude": 35.6618348,
+            "longitude": 139.725206
+        },
+        "address": "Japan, 〒106-0031 Tokyo, Minato City, Nishiazabu, 1-chōme−4−１５ 寿司勇",
+        "rating": 4.8,
+        "price_level": 3,
+        "description": {
+            "text": "I went here during my Japan trip in April.\nThe food was phenomenal, the explanations for each dish were lovely, the atmosphere of the place was great. I was able to make quite a few friends during this tasting as I was alone. I looked around for a while searching for a good omakase and I am beyond happy I chose this place, will definitely go back. The drinks were lovely and I loved trialing the different Tunas.",
+            "languageCode": "en"
+        }
+    },
+    {
+        "place_id": "ChIJb4zKhweMGGARLbGvDtVy5wY",
+        "name": "Aman Tokyo Arva Italian Restaurant",
+        "category": "restaurant",
+        "location": {
+            "latitude": 35.685553999999996,
+            "longitude": 139.765371
+        },
+        "address": "The Otemachi Tower, 1-chōme-5-6 Ōtemachi, Chiyoda City, Tokyo 100-0004, Japan",
+        "rating": 4.4,
+        "price_level": 3,
+        "description": {
+            "text": "I was here for a work function and we were a large group of 8, despite the restaurant being empty I was surprised that we only had one waiter attend to our group (at the dessert course one more waiter appeared). We had to leave our coats on a sofa next to the table. A restaurant and hotel of that calibre I was expecting to have our coats hung up in a separate coat area.\nWe ordered the 4 course and drink menu. The food was not up to par compared to other restaurants at the same level. I would not describe the dishes as Italian food, rather as Japanese food inspired by Italian style cuisine. I would not recommend this experience to others.",
+            "languageCode": "en"
+        }
+    },
+    {
+        "place_id": "ChIJaQ9iDCyLGGARj48qFLQAcOs",
+        "name": "Menya NOBUNAGA【Ramen Restaurant】",
+        "category": "restaurant",
+        "location": {
+            "latitude": 35.6764566,
+            "longitude": 139.7704595
+        },
+        "address": "Japan, 〒104-0031 Tokyo, Chuo City, Kyōbashi, 2-chōme−5−２ Ａ・Ｍ京橋ビル",
+        "rating": 4.8,
+        "price_level": 0,
+        "description": {
+            "text": "We went there a few minutes before 6 pm. There weren’t many people at first, but customers kept coming in after that. Orders were placed through the machine, and we waited for the food. It was a great experience watching the chef prepare the meal.\n\nThe ramen soup was delicious — it was the first time I finished every drop — and the noodles were perfectly springy.  The portion size was generous and filling. The spicy level is just perfect.",
+            "languageCode": "en"
+        }
+    },
+    {
+        "place_id": "ChIJHbq1qLiNGGARNlnd4lieF7I",
+        "name": "MAZ",
+        "category": "restaurant",
+        "location": {
+            "latitude": 35.6794272,
+            "longitude": 139.7376625
+        },
+        "address": "Japan, 〒102-0094 Tokyo, Chiyoda City, Kioichō, 1−１−３ 東京ガーデンテラス 3F",
+        "rating": 4.5,
+        "price_level": 0,
+        "description": {
+            "text": "This restaurant is special. The food is delicious while you feel like you are on a bit of a journey through Peru. The staff were all kind and friendly (which is not the case in all **/***Michelin restos). Our server (Liz) was a delight and it was great to chat briefly with chef Fernandez. Delicious, ethereal & creative.",
+            "languageCode": "en"
+        }
+    },
+    {
+        "place_id": "ChIJiXocb7WNGGAReVVBhRwWLoQ",
+        "name": "Blue Bottle Coffee - Shibuya Cafe",
+        "category": "cafe",
+        "location": {
+            "latitude": 35.664094399999996,
+            "longitude": 139.69951749999998
+        },
+        "address": "1-chōme-7-3 Jinnan, Shibuya, Tokyo 150-0041, Japan",
+        "rating": 4.6,
+        "price_level": 2,
+        "description": {
+            "text": "Loved stopping at this Blue Bottle in Shibuya. This location has a beautiful interior that lends itself well to creating a relaxing spot where you can enjoy a  nice coffee in the heart of Tokyo.\n\nWe were lucky enough to get a spot by the window to sit and enjoy our coffees and pastry and it was so nice. The scone and jam we shared were delicious and as always, the coffee was perfection. This location also has lots of very nice merch you can purchase for souvenirs or gifts.",
+            "languageCode": "en"
+        }
+    },
+    {
+        "place_id": "ChIJ1drE4CyLGGAR9-g-0v5WNCI",
+        "name": "Common",
+        "category": "cafe",
+        "location": {
+            "latitude": 35.6641123,
+            "longitude": 139.7333372
+        },
+        "address": "Japan, 〒106-0032 Tokyo, Minato City, Roppongi, 4-chōme−8−５ 和幸ビル 1F",
+        "rating": 4.4,
+        "price_level": 2,
+        "description": {
+            "text": "Common in Roppongi has quickly become one of my favorite spots in the neighborhood.  My husband and I stopped in for a mid-afternoon break and ended up staying much longer than planned because the space feels relaxed, warm and surprisingly spacious for this area.  There is a good mix of seating where you can either open a laptop or just sit and talk, and even when it is busy it never feels chaotic or rushed. We ordered a hot matcha latte and their house herbal tea infused with honey, and both were genuinely delicious. The matcha latte was smooth and comforting without being too sweet, and the herbal tea had a soft, soothing aroma with the honey giving it a gentle natural sweetness. The drinks are definitely on the pricier side, but the quality is there in the flavors and the way everything is prepared, so it felt worth it for a sit-down experience rather than a quick grab-and-go.   The food menu leans more toward café-restaurant than simple snacks, with sandwiches, toasts and light plates that work well for lunch or a long work session.  I like starting with something small and shareable and then moving on to a hearty sandwich or toast, and there are usually desserts or cakes at the counter that pair perfectly with one more drink. Location-wise it is very convenient, only a short walk from Roppongi Station, which makes it an easy meet-up spot before or after other plans in Minato.  Overall, Common feels like a thoughtfully designed café where you pay a little more but get calm ambience, good drinks and food, and a place you actually want to linger in.",
+            "languageCode": "en"
+        }
+    },
+    {
+        "place_id": "ChIJ9fvGqKmMGGARgHo3R2Yql7g",
+        "name": "Maidreamin Shibuya Store",
+        "category": "cafe",
+        "location": {
+            "latitude": 35.6607914,
+            "longitude": 139.69825799999998
+        },
+        "address": "Japan, 〒150-0042 Tokyo, Shibuya, Udagawachō, 30−１ 蓬莱屋ビル B1",
+        "rating": 4.9,
+        "price_level": 2,
+        "description": {
+            "text": "First maid café experience in my life, and it was definitely an experience! I came here with my wife, and the maids were all very polite, welcoming, and professional. They did their best to communicate in English which we appreciated very much. The presentation of the food was absolutely amazing, and my wife found everything adorable and cute. They don't operate as a traditional café where you sit down, and order food and drinks off of a menu. You actually choose a \"course\", and depending on what \"course\", you get food, drinks, dessert parfait, or whatever combination of those. The experience came with live dance performances, and was just like what you would see on tiktok videos!",
+            "languageCode": "en"
+        }
+    },
+    {
+        "place_id": "ChIJW4Hi46OLGGARZVuuNeN6hxs",
+        "name": "Turret Coffee Tsukiji",
+        "category": "cafe",
+        "location": {
+            "latitude": 35.668039199999996,
+            "longitude": 139.77199610000002
+        },
+        "address": "2-chōme-12-6 Tsukiji, Chuo City, Tokyo 104-0045, Japan",
+        "rating": 4.6,
+        "price_level": 2,
+        "description": {
+            "text": "The best coffee I've had in Japan! We ordered the Turret Latte and the Americano. Both were strong, smooth, bold and full of flavour. Yes, it's bitter but that's what we loved about it. ❤️\n\nThis place is small but very cute. Grab a seat if you can, it's quite cozy!\n\nThe people who helped us were very friendly. Definitely worth the short walk from Tsukiji Outer Market. Highly recommend! ☕️",
+            "languageCode": "en"
+        }
+    },
+    {
+        "place_id": "ChIJUyaS0ErzGGAR6_mFuqndQ9o",
+        "name": "Little Nap Coffee Stand",
+        "category": "cafe",
+        "location": {
+            "latitude": 35.6720937,
+            "longitude": 139.6905932
+        },
+        "address": "5-chōme-65-4 Yoyogi, Shibuya, Tokyo 151-0053, Japan",
+        "rating": 4.5,
+        "price_level": 2,
+        "description": {
+            "text": "Even though there were a lot of people queuing up when I arrived, the line moved pretty quickly and the staff stayed super friendly despite the rush. I tried the Ice Americano and it was honestly spot on—really smooth and exactly what I needed. The whole place has a cool, rustic vibe and is right by the park, making it the perfect chill spot to grab a coffee and people-watch for a bit.",
+            "languageCode": "en"
+        }
+    },
+    {
+        "place_id": "ChIJrWB6lbKMGGARp0QB0mMSNe4",
+        "name": "Fuglen Tokyo",
+        "category": "cafe",
+        "location": {
+            "latitude": 35.6666181,
+            "longitude": 139.6923999
+        },
+        "address": "1-chōme-16-11 Tomigaya, Shibuya, Tokyo 151-0063, Japan",
+        "rating": 4.3,
+        "price_level": 2,
+        "description": {
+            "text": "Fuglen Tokyo ☕✨\nis a stylish and cozy café with a unique Scandinavian–Japanese vibe. The atmosphere feels warm, relaxed, and effortlessly cool, making it a perfect place to slow down and enjoy the moment.\n\nThe coffee is excellent — rich, well balanced, and clearly crafted with care. Every cup feels thoughtfully made, whether you’re stopping by for a quick break or sitting down to relax.\n\nWhat makes Fuglen Tokyo special is its character. With vintage décor, great music, and a calm yet lively energy, it feels like a hidden gem in the city. A must-visit spot for coffee lovers looking for quality, atmosphere, and a little Tokyo charm.",
+            "languageCode": "en"
+        }
+    },
+    {
+        "place_id": "ChIJP2BtW-CLGGAR_-5-Dk9pFoE",
+        "name": "BONGENCOFFEE Ginza",
+        "category": "cafe",
+        "location": {
+            "latitude": 35.6710713,
+            "longitude": 139.77080379999998
+        },
+        "address": "2-chōme-16-3 Ginza, Chuo City, Tokyo 104-0061, Japan",
+        "rating": 4.4,
+        "price_level": 2,
+        "description": {
+            "text": "High quality specialty coffee shop in Ginza, Tokyo. The coffee shop is very small only 4-5 seats and customers have to line up outside. I waited a half an hour before making my order, which is a delicious flat white. They also sell many coffee beans rom different regions around the world. Staff and the barista are friendly. They gave me an advice to choose my preferred coffee beans. Price is reasonable for this high quality service and products.",
+            "languageCode": "en"
+        }
+    },
+    {
+        "place_id": "ChIJDTq-ORWPGGARfLngswbJIWU",
+        "name": "Awakening Cafe",
+        "category": "cafe",
+        "location": {
+            "latitude": 35.7183524,
+            "longitude": 139.7841595
+        },
+        "address": "Japan, 〒110-0014 Tokyo, Taito City, Kitaueno, 2-chōme−23−９ イチロービル 4階, Ichiro Building 4th floor",
+        "rating": 4.8,
+        "price_level": 0,
+        "description": {
+            "text": "Great little hole in the wall cafe. Staff was super nice and spoke excellent english. The prices were very good and I can't recommend the Carbonara enough it was delicious. I also had the Dessert waffles and the S'more hot chocolate the day before and they were excellent as well. The owner is super welcoming and wholesome.",
+            "languageCode": "en"
+        }
+    },
+    {
+        "place_id": "ChIJq_fYt4iLGGARrOojmQ4IMyE",
+        "name": "Starbucks Reserve® Roastery Tokyo",
+        "category": "cafe",
+        "location": {
+            "latitude": 35.6492642,
+            "longitude": 139.69259069999998
+        },
+        "address": "2-chōme-19-23 Aobadai, Meguro City, Tokyo 153-0042, Japan",
+        "rating": 4.5,
+        "price_level": 2,
+        "description": {
+            "text": "A large four storey building with things to see in every corner!\nThere’s the cafe/bakery floor, Teavana floor (which no longer exists in the US and other countries or so I’ve heard) etc.\nThe roasting machine will be used quite regularly so you get to watch the beans in action.\nI tried it in the NYC (Chelsea) roastery too but the whiskey barrel aged cold brew is still hands down my favourite and best drink I’ve had at a Starbucks and can rave about it all day long - it’s amazing for both coffee drinkers and whiskey drinkers (no alcohol in the cold brew).\nThe food is different from your regular Starbucks as well and is freshly made so it just compliments all the drinks.\nLastly I would recommend trying the flights of coffee. Despite being a coffee lover, I never understood about the notes and flavours until having been able to compare them side by side. The baristas explain the various methods that they use to extract coffee and how it changes the texture and flavour profile.\n\nThe merch area is also full of lovely items including Tokyo only merch as well as Toastery merch.\n\nWould recommend going on a weekday as the weekends are very busy and sometimes require a ticket (free) to enter.\nHighly recommend for Starbucks and/or coffee lovers!",
+            "languageCode": "en"
+        }
+    },
+    {
+        "place_id": "ChIJfyW8OaOMGGARiYF53TCqEsM",
+        "name": "CAFE REISSUE",
+        "category": "cafe",
+        "location": {
+            "latitude": 35.6711763,
+            "longitude": 139.7079583
+        },
+        "address": "3-chōme-25-7 Jingūmae, Shibuya, Tokyo 150-0001, Japan",
+        "rating": 4.7,
+        "price_level": 2,
+        "description": {
+            "text": "The skill and talent of the barista is outstanding. Space is limited and you may have to wait during peak hours, but the wait is worth it. The cakes compliment the drinks well in a warm and cozy dining area. Hearing other customers light up in excitement when they receive their art pieces created a fun atmosphere.\n\nWould definitely visit here again in the future.",
+            "languageCode": "en"
+        }
+    },
+    {
+        "place_id": "ChIJOVpUKSqPGGARcP4M7Q-Jxt4",
+        "name": "The Coffee Counter Tokyo",
+        "category": "cafe",
+        "location": {
+            "latitude": 35.6950913,
+            "longitude": 139.78150589999998
+        },
+        "address": "東神田イチオクビル 1階, 1-chōme-17-5 Higashikanda, Chiyoda City, Tokyo 101-0031, Japan",
+        "rating": 4.9,
+        "price_level": 0,
+        "description": {
+            "text": "A relaxing place with nice food and we are back again for the second day (our last day in Tokyo).\nThe service is superb as the staff remember the name given her for food ordering yesterday.l despite so many people she served. My 10 yo gal loves their Just Cheese Sandwich (she is a picky gal) and Matcha 🍓 drink.",
+            "languageCode": "en"
+        }
+    },
+    {
+        "place_id": "ChIJq5OPqKeOGGARlHd2pWHZKZg",
+        "name": "Owl Cafe Tokyo",
+        "category": "cafe",
+        "location": {
+            "latitude": 35.700800900000004,
+            "longitude": 139.7748397
+        },
+        "address": "Japan, 〒101-0022 東京都千代田区神田練塀町６７",
+        "rating": 4.9,
+        "price_level": 2,
+        "description": {
+            "text": "Definitely the coolest thing I've ever done! Like many others report, the owls here are very well taken care of! The owners are very kind and helpful (very good English as well, for any other foreigners visiting!). I did a private session and it was amazing, I was showered with owls and got many good pictures. At the end of my session I received very kind gifts, I'll never forget this experience!\n\nMy favorite owls are Takoyaki, Wizard, and Mr President! (+all of the little tiny ones, they were so cute!)",
+            "languageCode": "en"
+        }
+    },
+    {
+        "place_id": "ChIJ_5TAt9qMGGARjg9wMPqgimo",
+        "name": "Blue Bottle Coffee - Shinjuku Cafe",
+        "category": "cafe",
+        "location": {
+            "latitude": 35.6887927,
+            "longitude": 139.70211519999998
+        },
+        "address": "Japan, 〒160-0022 Tokyo, Shinjuku City, Shinjuku, 4-chōme−1−６ NEWoMan SHINJUKU 1F",
+        "rating": 4.1,
+        "price_level": 2,
+        "description": {
+            "text": "For hand drip coffee, I obsessively drink black without cream/milk and sugar.  Today, I observe Blue Bottle providing an optional Au Lait for hand drip coffee.  I decide to give a try.  It is surprising to me that good and fit well with a sparkle of sugar.  I observe the barista was paying full attention to details preparing the hand drip coffee which is excellent.",
+            "languageCode": "en"
+        }
+    },
+    {
+        "place_id": "ChIJb9DD4ZSOGGARJBUezRn27mo",
+        "name": "Ninja Experience Cafe Asakusa In Tokyo",
+        "category": "cafe",
+        "location": {
+            "latitude": 35.717014899999995,
+            "longitude": 139.7918297
+        },
+        "address": "3-chōme-27-14 Nishiasakusa, Taito City, Tokyo 111-0035, Japan",
+        "rating": 4.9,
+        "price_level": 0,
+        "description": {
+            "text": "Excellent ninja experience for family with kids!! Friendly staff and awesome ninja training with ninja tradition information sharing. We love and enjoy the whole experience so much! Would definitely recommend it to our friends!",
+            "languageCode": "en"
+        }
+    },
+    {
+        "place_id": "ChIJcbVr4dmMGGARGfdSiy66-mg",
+        "name": "Maidcafe Maidreamin Shinjuku East-exit Store",
+        "category": "cafe",
+        "location": {
+            "latitude": 35.693197000000005,
+            "longitude": 139.7016262
+        },
+        "address": "3-chōme-22-10 Shinjuku, Shinjuku City, Tokyo 160-0022, Japan",
+        "rating": 4.9,
+        "price_level": 2,
+        "description": {
+            "text": "I was in Shinjuku to see the 3D cat. I followed the wife and daughter here for brunch. They knew all about it from Anime. It was a different experience for me. I was more of an observer here so, I had a grapefruit juice while they went all in for the full experience. Kiriko the Santa Girl was so funny and she spoke very good English. We took pictures with her for 880 yen to get the full experience. It was fun we did the Moe moe.",
+            "languageCode": "en"
+        }
+    },
+    {
+        "place_id": "ChIJB2DHZtmMGGARAacc_8m605g",
+        "name": "Deathmatch in Hell",
+        "category": "bar",
+        "location": {
+            "latitude": 35.69390810000001,
+            "longitude": 139.7049309
+        },
+        "address": "Japan, 〒160-0021 Tokyo, Shinjuku City, Kabukichō, 1-chōme−1−８ ゴールデン街 ３番街",
+        "rating": 4.8,
+        "price_level": 1,
+        "description": {
+            "text": "Awesome experience. Lived up to expectations. Great atmosphere of heavy metal fans and very cool horror and metal memorabilia. Horror movies showing on small screens while heavy metal music is pumping on the stereo. The owner is friendly and a true fan. The drinks are all ¥666 and delicious. From beer to Japanese whiskey, to plum wine.  A great time!",
+            "languageCode": "en"
+        }
+    },
+    {
+        "place_id": "ChIJf8D6JkCLGGARZICNBhKPn24",
+        "name": "Bar TRENCH",
+        "category": "bar",
+        "location": {
+            "latitude": 35.648418,
+            "longitude": 139.70795099999998
+        },
+        "address": "Japan, 〒150-0021 Tokyo, Shibuya, Ebisunishi, 1-chōme−5−８ １０２",
+        "rating": 4.7,
+        "price_level": 3,
+        "description": {
+            "text": "We came here as it was highly recommended. It lived up to the hype. The ambience is beautiful, the drinks are unique and delicious, the music is great. Arthur behind the bar is very welcoming and nice to chat to. We will definitely come back and keep passing on the recommendation to others.",
+            "languageCode": "en"
+        }
+    },
+    {
+        "place_id": "ChIJB5cSL6-MGGARy54ZXakbYH4",
+        "name": "The SG Club",
+        "category": "bar",
+        "location": {
+            "latitude": 35.6642434,
+            "longitude": 139.69923140000003
+        },
+        "address": "1-chōme-7-8 Jinnan, Shibuya, Tokyo 150-0041, Japan",
+        "rating": 4.5,
+        "price_level": 3,
+        "description": {
+            "text": "The best cocktails of my life.\nTruly.\n\nThe service is outstanding — warm, attentive, and genuinely passionate. And the cocktails… they’re not just classic or original, they’re absolutely incredible. Each drink is a real experience: perfectly balanced, surprising, and unforgettable.\n\nNo wonder this bar is ranked among the World’s 50 Best Bars.\n\nWe went twice during our stay and loved it so much we could easily have gone back again. A true favorite. 🍸",
+            "languageCode": "en"
+        }
+    },
+    {
+        "place_id": "ChIJsfXrzkSNGGARpgO1rEbEF8I",
+        "name": "Art Bar Shuten-Doji",
+        "category": "bar",
+        "location": {
+            "latitude": 35.6938773,
+            "longitude": 139.7041449
+        },
+        "address": "Japan, 〒160-0021 Tokyo, Shinjuku City, Kabukichō, 1-chōme−2−６ 1階",
+        "rating": 4.8,
+        "price_level": 0,
+        "description": {
+            "text": "Cozy bar with a karaoke machine in golden gai. Attracts mostly tourists. Staff speaks some English and are pretty friendly. No entry charge but drinks are a little pricey (typical for golden gai). Serves mostly cocktails and highballs. No beer on tap. Nonetheless we had a great time here!",
+            "languageCode": "en"
+        }
+    },
+    {
+        "place_id": "ChIJGcxVfFWJGGAR3ST5qxzV9s8",
+        "name": "Mandarin Bar",
+        "category": "bar",
+        "location": {
+            "latitude": 35.687051,
+            "longitude": 139.77304039999999
+        },
+        "address": "2-chōme-1-1 Nihonbashimuromachi, Chuo City, Tokyo 103-8328, Japan",
+        "rating": 4.4,
+        "price_level": 0,
+        "description": {
+            "text": "Our experience at Miyagawa Ao was disappointing and did not meet the standard expected of a premium hospitality establishment.\n\nWe were given incorrect information regarding the availability of a smoking room. Staff told us that there was no smoking room in the hotel and instructed us to “go smoke outside of the hotel.” This was later proven to be inaccurate, as there is a designated smoking room located on B1 of the building.\n\nAdditionally, when we requested a sofa seat, we were informed that all sofa seating was fully booked for the evening. However, within five minutes, another staff member escorted us to a sofa seat without any difficulty. This inconsistency suggests poor internal communication and a lack of coordination among staff.\n\nThe issue was not a single isolated mistake, but a pattern of dismissive attitude and unprofessional handling, which significantly affected the overall experience.\n\nFor a venue positioned at this level, accuracy, consistency, and a welcoming attitude should be fundamental. Unfortunately, this was not reflected during our visit.",
+            "languageCode": "en"
+        }
+    },
+    {
+        "place_id": "ChIJh7VWYQCNGGAR4HpE2vH8gAU",
+        "name": "LOST",
+        "category": "bar",
+        "location": {
+            "latitude": 35.6607552,
+            "longitude": 139.69742979999998
+        },
+        "address": "Japan, 〒150-0042 Tokyo, Shibuya, Udagawachō, 33−１ 2階",
+        "rating": 4.7,
+        "price_level": 2,
+        "description": {
+            "text": "Pleasantly surprised! Best bar experience I've had. The staff were very kind and the cocktails and snacks were great! Great music. We started sitting at the bar but they eventually asked us if we could sit at a table instead since it was very busy. They gave us free chips for the trouble even though we didn't ask for anything. Amazing costumer service! I'll definitely come back next time I'm in Japan!",
+            "languageCode": "en"
+        }
+    },
+    {
+        "place_id": "ChIJsYqu6L6NGGAR2MSBDtYgk4k",
+        "name": "Jeremiah",
+        "category": "bar",
+        "location": {
+            "latitude": 35.6917048,
+            "longitude": 139.7105861
+        },
+        "address": "Japan, 〒160-0022 Tokyo, Shinjuku City, Shinjuku, 5-chōme−4−１ 新宿Ｑフラットビル １F",
+        "rating": 4.9,
+        "price_level": 0,
+        "description": {
+            "text": "My friends and I went to Jeremiah's after we got a recommendation from a local foreigner for bars in Shinjuku (the area we were staying in). It was better than we could have ever imagined! The drinks were so good! The bar trick with fire amazed us, haha. The atmosphere was so nice to relax and enjoy the company of who you're with. When we had gone, we ended up being the last people to leave the bar. To end the night, the bartender was super nice and offered us a round of shots. I had been ordering the mocktail options all night (which were also delicious) and the bartender took note of that. To my surprise, he offered me a mocktail shot he mixed up. I was amazed with his observation and that really made my night! I will always remember this bar fondly and would recommend it in a heartbeat. If I could rate it past 5 stars, I would!",
+            "languageCode": "en"
+        }
+    },
+    {
+        "place_id": "ChIJ9XzpydmMGGARgaENA4nlEzs",
+        "name": "BAR PSY",
+        "category": "bar",
+        "location": {
+            "latitude": 35.6945628,
+            "longitude": 139.7025755
+        },
+        "address": "Japan, 〒160-0021 Tokyo, Shinjuku City, Kabukichō, 1-chōme−13−７ 2F TOKYO19",
+        "rating": 4.7,
+        "price_level": 2,
+        "description": {
+            "text": "Pretty good vibes, atmosphere is good, design is quite cool.\n\nWide variety of drinks and staff is super friendly.\n\nMusic isn't as loud and normal places which allows you to speak with people without shouting.\n\nPlace allows smoking so if you don't smoke that might be the only issue.",
+            "languageCode": "en"
+        }
+    },
+    {
+        "place_id": "ChIJT7wVXe6LGGAR4RMHAiMU0FQ",
+        "name": "Old Imperial Bar",
+        "category": "bar",
+        "location": {
+            "latitude": 35.6723631,
+            "longitude": 139.7587618
+        },
+        "address": "Japan, 〒100-8558 Tokyo, Chiyoda City, Uchisaiwaichō, 1-chōme−1−１ 本館 中2階",
+        "rating": 4.6,
+        "price_level": 3,
+        "description": {
+            "text": "An elegant step back in time. The Imperial Bar feels wonderfully old-fashioned in the best possible way - polished wood, classic details, and that quiet, refined atmosphere you rarely find anymore. It’s the kind of place where you naturally lower your voice and slow down.\n\nThe cocktails are beautifully made and very well balanced, clearly handled by people who know their craft. Portions are on the smaller side though.\n\nA truly classy spot for a calm, refined evening. Perfect if you appreciate tradition, elegance, and a proper cocktail done right.",
+            "languageCode": "en"
+        }
+    },
+    {
+        "place_id": "ChIJ3QZS-KuMGGART1WJyBgLNSk",
+        "name": "ØL by Oslo Brewing Co.",
+        "category": "bar",
+        "location": {
+            "latitude": 35.6622045,
+            "longitude": 139.6957136
+        },
+        "address": "Japan, 〒150-0042 Tokyo, Shibuya, Udagawachō, 37−１０ 麻仁ビル",
+        "rating": 4.1,
+        "price_level": 3,
+        "description": {
+            "text": "If you’re in Tokyo just looking for a nice spot to chill and have a beer this is your place. The beer selection is 10/10 and changes all the time, roll the dice and try a different one each time. The food is also epic, pork cutlet got top 3 bite of the trip awards from me 🏆. The music and the atmosphere also on point. Can’t really go wrong here, rest and be thankful!",
+            "languageCode": "en"
+        }
+    },
+    {
+        "place_id": "ChIJOXWXbz_zGGAR1HVgDHIj6GY",
+        "name": "New-York bar",
+        "category": "bar",
+        "location": {
+            "latitude": 35.686113,
+            "longitude": 139.6904009
+        },
+        "address": "パークハイアット東京, 52階, 3-chōme-7-1-2 Nishishinjuku, Shinjuku City, Tokyo 163-1055, Japan",
+        "rating": 4.4,
+        "price_level": 0,
+        "description": {
+            "text": "Lives up to the hype if you are looking for the \"Lost in Translation\" bar experience in Tokyo. Views are spectacular and the live jazz (nightly @ 20:30) will give you a nostalgic, heady rush whether on a date or having drinks in solitude.",
+            "languageCode": "en"
+        }
+    },
+    {
+        "place_id": "ChIJZUTGW9GMGGAROJ7G4sU221Q",
+        "name": "Bar Benfiddich",
+        "category": "bar",
+        "location": {
+            "latitude": 35.6894823,
+            "longitude": 139.6966117
+        },
+        "address": "Japan, 〒160-0023 Tokyo, Shinjuku City, Nishishinjuku, 1-chōme−13−７ 9F",
+        "rating": 4.4,
+        "price_level": 3,
+        "description": {
+            "text": "Rated as #18 of the World’s Top 50 bars and #9 in Asia for 2025– you already know it’s difficult to get spots! Reservations are released once a month. Our party was up early in the morning pacific time the month before our trip to get these seats.\n\nSimilar to other businesses in Tokyo, Benfiddich was small and had very limited seats. I saw them turn away a few parties who tried to walk in. Since we had a party of 4, we were seated at the tables as opposed to the bar. While we had a great time, I would have preferred to sit at the bar where you can watch the action happen. It was very entertaining watching the owner and the only bartender make all of the drinks!\n\nThere are no menus.The servers talk with each person to discuss what kind of liquor and flavor profile we preferred. They were personable and suggested great-tasting drinks.\n\nOur party had a wonderful experience and it’s nice to try it out at least one!",
+            "languageCode": "en"
+        }
+    },
+    {
+        "place_id": "ChIJVVUhRGCLGGARXWkqdrqUi7c",
+        "name": "TOKYO Whisky Library – Premium Whisky Bar & Restaurant",
+        "category": "bar",
+        "location": {
+            "latitude": 35.6636072,
+            "longitude": 139.712909
+        },
+        "address": "Japan, 〒107-0062 Tokyo, Minato City, Minamiaoyama, 5-chōme−5−２４ 南青山サンタキアラ教会 2階",
+        "rating": 4.4,
+        "price_level": 3,
+        "description": {
+            "text": "If you're looking for the \"Harry Potter Library\" of spirits, this is it. TOKYO Whisky Library is an absolute masterpiece of a bar, featuring floor-to-ceiling shelves packed with over 1,200 types of whisky from around the world.\n\nThe space is cinematic—grand chandeliers hang from high ceilings, and the brick-walled interior gives it a sophisticated, antique vibe. Unlike many small, dark Tokyo bars, this place feels incredibly spacious and comfortable, with lighting that is just right—neither too bright nor too dim. It’s perfect for a refined date or a quiet evening with fellow connoisseurs.\n\nTheir collection of Japanese whisky is exceptional, making it a must-visit for international tourists. From legendary labels like Taketsuru to craft gems like Amahasan, the variety is so vast you'll find yourself wanting to come back again and again.\n\n💡 Pro Tips:\n- Timing: Keep in mind that it closes a bit earlier than your average late-night bar (usually around 11:00 PM or 12:00 AM depending on the day). It’s better as a classy start or middle of your night rather than the final stop.\n- For Fans: The Ardbeg collection is particularly impressive—be sure to check out the rare limited editions on the shelves!\n- Accessibility: Located in Minami-Aoyama, just a short walk from Omotesando Station.",
+            "languageCode": "en"
+        }
+    },
+    {
+        "place_id": "ChIJrWB6lbKMGGARp0QB0mMSNe4",
+        "name": "Fuglen Tokyo",
+        "category": "bar",
+        "location": {
+            "latitude": 35.6666181,
+            "longitude": 139.6923999
+        },
+        "address": "1-chōme-16-11 Tomigaya, Shibuya, Tokyo 151-0063, Japan",
+        "rating": 4.3,
+        "price_level": 2,
+        "description": {
+            "text": "Fuglen Tokyo ☕✨\nis a stylish and cozy café with a unique Scandinavian–Japanese vibe. The atmosphere feels warm, relaxed, and effortlessly cool, making it a perfect place to slow down and enjoy the moment.\n\nThe coffee is excellent — rich, well balanced, and clearly crafted with care. Every cup feels thoughtfully made, whether you’re stopping by for a quick break or sitting down to relax.\n\nWhat makes Fuglen Tokyo special is its character. With vintage décor, great music, and a calm yet lively energy, it feels like a hidden gem in the city. A must-visit spot for coffee lovers looking for quality, atmosphere, and a little Tokyo charm.",
+            "languageCode": "en"
+        }
+    },
+    {
+        "place_id": "ChIJzX7RetmMGGARUZYlEos8rf4",
+        "name": "ARAKU",
+        "category": "bar",
+        "location": {
+            "latitude": 35.6938098,
+            "longitude": 139.70464099999998
+        },
+        "address": "Japan, 〒160-0021 Tokyo, Shinjuku City, Kabukichō, 1-chōme−1−９ ゴールデン街 G2 通り 2F",
+        "rating": 4.6,
+        "price_level": 0,
+        "description": {
+            "text": "Very cool bar in an extremely busy section of Shinjuku. There are currencies stuck to walls and ceiling all over the place.\nThe bar is up a flight of red stairs and seats about 20.",
+            "languageCode": "en"
+        }
+    }
+]
