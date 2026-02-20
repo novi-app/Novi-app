@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from dotenv import load_dotenv
-from app.routers_folder import user
+from app.routers import user
 import os
 
 # Load environment variables
@@ -41,8 +41,8 @@ async def root():
         "health": "/health"
     }
 
-# Import and include routers_folder (will add these later)
-# from app.routers_folder import user, recommendations, interventions, analytics
+# Import and include routers (will add these later)
+# from app.routers import user, recommendations, interventions, analytics
 app.include_router(user.router)
 # app.include_router(recommendations.router)
 # app.include_router(interventions.router)
