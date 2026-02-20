@@ -16,11 +16,26 @@ app = FastAPI(
 # CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure properly for production
+    allow_origins=["*"],  # Configure for production
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
+
+# Startup event - Initialize Firebase
+@app.on_event("startup")
+def startup_event():
+    """
+    Initialize services when FastAPI starts
+    """
+    from app.utils.firebase_client import initialize_firebase
+    
+    try:
+        initialize_firebase()
+        print("Firebase initialized successfully")
+    except Exception as e:
+        print(f"Firebase initialization failed: {e}")
+        raise  # Fail fast - don't start if Firebase is broken
 
 # Health check endpoint
 @app.get("/health")
@@ -40,18 +55,14 @@ async def root():
         "health": "/health"
     }
 
-# Import and include routers (will add these later)
+# Include debug router ONLY in development
+if os.getenv("ENVIRONMENT") == "development":
+    from app.routers import debug
+    app.include_router(debug.router)
+    print("Debug router enabled (development mode)")
+
+# Include other routers as they're built
 # from app.routers import user, recommendations, interventions, analytics
 # app.include_router(user.router)
 # app.include_router(recommendations.router)
-# app.include_router(interventions.router)
-# app.include_router(analytics.router)
-
-if __name__ == "__main__":
-    import uvicorn
-    uvicorn.run(
-        "app.main:app",
-        host=os.getenv("API_HOST", "0.0.0.0"),
-        port=int(os.getenv("API_PORT", 8000)),
-        reload=True
-    )
+# etc.
