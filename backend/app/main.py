@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from config import settings
+from app.routers import user
 
 app = FastAPI(
     title="Novi API",

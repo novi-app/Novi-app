@@ -1,5 +1,16 @@
 from pydantic import BaseModel
-from typing import Dict, Any
+from typing import List
 
-class OnboardRequest(BaseModel):
-    preferences: Dict[str, Any]
+class UserPreferences(BaseModel):
+    dietary: List[str]
+    budget: str
+    vibes: List[str]
+    travel_style: str
+
+class OnboardingRequest(BaseModel):
+    preferences: UserPreferences
+
+class OnboardingResponse(BaseModel):
+    user_id: str
+    status: str
+    
