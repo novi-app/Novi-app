@@ -1,32 +1,27 @@
 from fastapi import APIRouter, HTTPException
-from pydantic import BaseModel
-from typing import Dict, List, Optional
+from app.models.user import OnboardingRequest, OnboardingResponse
+from app.services.user_service import onboard_user
 
 router = APIRouter(prefix="/api/user", tags=["user"])
 
-class UserPreferences(BaseModel):
-    dietary: List[str]
-    budget: str
-    vibes: List[str]
-    travel_style: str
-
-class OnboardingRequest(BaseModel):
-    preferences: UserPreferences
-
-@router.post("/onboard")
-async def onboard_user(request: OnboardingRequest):
+@router.post("/onboard", response_model=OnboardingResponse)
+async def onboard_user_endpoint(request: OnboardingRequest):
     """
-    Create user profile and generate preference embedding
+    Create user profile (stub implementation).
+    
+    Currently generates temporary user_id without saving to database.
+    Full implementation in [BACK-007] will:
+    - Generate user embedding from preferences
+    - Save user + embedding to Firebase
+    - Return permanent user_id
     """
     try:
-        # TODO: Implement user creation logic
-        # - Generate user embedding from preferences
-        # - Save to Firebase
-        
-        return {
-            "user_id": "temp_user_123",
-            "status": "success",
-            "message": "User onboarded successfully"
-        }
+        result = onboard_user(request.preferences)
+        return result
+    
     except Exception as e:
-        raise HTTPException(status_code=500, detail=str(e))
+        raise HTTPException(
+            status_code=500, 
+            detail=f"Onboarding failed: {str(e)}"
+        )
+    

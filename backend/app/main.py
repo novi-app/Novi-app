@@ -1,6 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from config import settings
+from app.routers import user
 
 app = FastAPI(
     title="Novi API",
@@ -53,8 +54,4 @@ if settings.ENVIRONMENT == "development":
     app.include_router(debug.router)
     print("Debug router enabled (development mode)")
 
-# Include other routers as they're built
-# from app.routers import user, recommendations, interventions, analytics
-# app.include_router(user.router)
-# app.include_router(recommendations.router)
-# etc.
+app.include_router(user.router)
