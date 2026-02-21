@@ -1,6 +1,6 @@
 from __future__ import annotations
-import os
 from typing import Any, Optional
+from config import settings
 
 import json
 import base64
@@ -27,7 +27,7 @@ def initialize_firebase() -> firestore.Client:
         return _db
     
     # Try base64 encoded credentials first (for Railway/cloud deployment)
-    cred_base64 = os.getenv("FIREBASE_CREDENTIALS_BASE64")
+    cred_base64 = settings.FIREBASE_CREDENTIALS_BASE64
     if cred_base64:
         try:
             # Decode base64 credentials
@@ -47,9 +47,9 @@ def initialize_firebase() -> firestore.Client:
             raise RuntimeError(f"Failed to initialize Firebase from base64: {e}") from e
     
     # Fall back to file path (for local development)
-    cred_path = os.getenv("FIREBASE_CREDENTIALS_PATH", "./firebase-service-account.json")
+    cred_path = settings.FIREBASE_CREDENTIALS_PATH
     
-    if os.path.exists(cred_path):
+    if cred_path:
         try:
             cred = credentials.Certificate(cred_path)
             firebase_admin.initialize_app(cred)

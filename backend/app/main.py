@@ -1,41 +1,33 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
-from dotenv import load_dotenv
-import os
+from config import settings
 
-# Load environment variables
-load_dotenv()
-
-# Initialize FastAPI
 app = FastAPI(
     title="Novi API",
     description="AI-powered solo travel decision support",
     version="1.0.0"
 )
 
-# CORS middleware
 app.add_middleware(
     CORSMiddleware,
-    allow_origins=["*"],  # Configure for production
+    allow_origins=["*"],
     allow_credentials=True,
     allow_methods=["*"],
     allow_headers=["*"],
 )
 
-# Startup event - Initialize Firebase
+# Startup event
 @app.on_event("startup")
 def startup_event():
-    """
-    Initialize services when FastAPI starts
-    """
     from app.utils.firebase_client import initialize_firebase
-    
+      
     try:
         initialize_firebase()
         print("Firebase initialized successfully")
     except Exception as e:
         print(f"Firebase initialization failed: {e}")
-        raise  # Fail fast - don't start if Firebase is broken
+        raise
+
 
 # Health check endpoint
 @app.get("/health")
@@ -56,7 +48,7 @@ async def root():
     }
 
 # Include debug router ONLY in development
-if os.getenv("ENVIRONMENT") == "development":
+if settings.ENVIRONMENT == "development":
     from app.routers import debug
     app.include_router(debug.router)
     print("Debug router enabled (development mode)")
