@@ -1,4 +1,4 @@
-# Novi - AI Travel Companion
+# Novi - AI Travel Companion - MVP
 
 Novi is an AI-powered travel companion app designed to eliminate decision paralysis for solo travelers in Tokyo. It provides personalized venue recommendations and real-time interventions based on user behavior and preferences.
 
@@ -7,7 +7,6 @@ Novi is an AI-powered travel companion app designed to eliminate decision paraly
 novi/
 ├── frontend/    # Next.js PWA (deployed to Vercel)
 ├── backend/     # FastAPI Python (deployed to Railway)
-├── shared/      # Shared configurations
 └── docs/        # Technical documentation
 ```
 
@@ -16,7 +15,6 @@ novi/
 ### Prerequisites
 - Node.js 18+
 - Python 3.11+
-- Firebase account
 - OpenAI API key
 - Google Places API key
 
@@ -25,7 +23,7 @@ novi/
 cd frontend
 npm install
 cp .env.example .env.local
-# Edit .env.local with your API keys
+# Edit .env.local with the API keys
 npm run dev
 ```
 
@@ -38,7 +36,7 @@ python -m venv venv
 source venv/bin/activate  # On Windows: venv\Scripts\activate
 pip install -r requirements.txt
 cp .env.example .env
-# Edit .env with your API keys
+# Edit .env with the API keys
 uvicorn app.main:app --reload
 ```
 
