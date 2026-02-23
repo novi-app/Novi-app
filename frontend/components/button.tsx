@@ -1,78 +1,100 @@
 import * as React from "react";
 
+type ButtonVariant = "primary" | "secondary" | "ghost" | "danger";
+type ButtonSize = "sm" | "md" | "lg";
+
 interface ButtonProps extends React.ButtonHTMLAttributes<HTMLButtonElement> {
-  variant?: "primary" | "secondary" | "outline" | "ghost" | "text";
-  size?: "xs" | "sm" | "md" | "lg" | "icon";
-  isLoading?: boolean;
-  icon?: React.ReactNode;
-  iconPosition?: "left" | "right";
+  variant?: ButtonVariant;
+  size?: ButtonSize;
+  loading?: boolean;
   fullWidth?: boolean;
+  leftIcon?: React.ReactNode;
+  rightIcon?: React.ReactNode;
 }
 
-/**
- * Novi Base Button
- * Production-ready with theme tokens, accessibility, and flexibility
- * Optimized for mobile touch targets (min 44px for default/lg)
- */
+const variantStyles: Record<ButtonVariant, string> = {
+  primary:
+    "bg-primary text-primary-contrast hover:bg-primary-strong active:bg-primary-strong focus-visible:ring-primary/50 shadow-xs",
+  secondary:
+    "bg-secondary text-secondary-contrast hover:bg-secondary-strong active:bg-secondary-strong focus-visible:ring-secondary/50 shadow-xs",
+  ghost:
+    "bg-transparent text-neutral-700 hover:bg-neutral-100 active:bg-neutral-200 focus-visible:ring-neutral-400/50",
+  danger:
+    "bg-error text-white hover:bg-red-600 active:bg-red-700 focus-visible:ring-error/50 shadow-xs",
+};
+
+const sizeStyles: Record<ButtonSize, string> = {
+  sm: "h-9 px-4 text-sm gap-1.5 rounded-sm",
+  md: "h-11 px-5 text-base gap-2 rounded",
+  lg: "h-13 px-6 text-lg gap-2.5 rounded-md",
+};
+
 export const Button = React.forwardRef<HTMLButtonElement, ButtonProps>(
   (
     {
-      children,
       variant = "primary",
       size = "md",
-      isLoading,
-      icon,
-      iconPosition = "left",
+      loading = false,
       fullWidth = false,
-      className = "",
+      leftIcon,
+      rightIcon,
       disabled,
+      children,
+      className = "",
       ...props
     },
     ref
   ) => {
-    const baseStyles =
-      "inline-flex items-center justify-center gap-2 rounded-2xl font-semibold transition-all active:scale-[0.98] disabled:opacity-50 disabled:pointer-events-none";
-
-    const variants = {
-      primary:
-        "bg-gradient-to-r from-[#FF8904] to-[#FF6900] text-white shadow-lg hover:shadow-xl hover:from-[#FF8904]/90 hover:to-[#FF6900]/90",
-      secondary:
-        "bg-gradient-to-r from-[#05DF72] to-[#00C950] text-white shadow-md hover:shadow-lg hover:from-[#05DF72]/90 hover:to-[#00C950]/90",
-      outline:
-        "border-2 border-gray-300 bg-white text-gray-800 hover:bg-gray-50",
-      ghost: "bg-transparent hover:bg-gray-100 text-gray-700",
-      text: "bg-transparent text-[#FF8904] hover:text-[#FF6900]",
-    };
-
-    const sizes = {
-      xs: "h-8 px-3 text-xs",
-      sm: "h-10 px-4 text-sm",
-      md: "h-12 px-6 text-base",
-      lg: "h-14 px-8 text-lg",
-      icon: "h-11 w-11",
-    };
+    const isDisabled = disabled || loading;
 
     return (
       <button
         ref={ref}
-        className={`${baseStyles} ${variants[variant]} ${sizes[size]} ${
-          fullWidth ? "w-full" : ""
-        } ${className}`}
-        disabled={disabled || isLoading}
+        disabled={isDisabled}
+        aria-busy={loading}
+        className={`
+          inline-flex items-center justify-center font-semibold
+          transition-colors duration-150 ease-smooth
+          focus-visible:outline-none focus-visible:ring-2
+          disabled:opacity-50 disabled:cursor-not-allowed
+          ${variantStyles[variant]}
+          ${sizeStyles[size]}
+          ${fullWidth ? "w-full" : ""}
+          ${className}
+        `}
         {...props}
       >
-        <span className="flex items-center justify-center gap-2">
-          {iconPosition === "left" && icon && !isLoading && (
-            <span className="flex items-center justify-center">{icon}</span>
-          )}
-          {isLoading && (
-            <span className="h-4 w-4 animate-spin rounded-full border-2 border-current border-t-transparent" />
-          )}
-          {children}
-          {iconPosition === "right" && icon && !isLoading && (
-            <span className="flex items-center justify-center">{icon}</span>
-          )}
-        </span>
+        {loading ? (
+          <>
+            <svg
+              className="h-4 w-4 animate-spin"
+              fill="none"
+              viewBox="0 0 24 24"
+              aria-hidden="true"
+            >
+              <circle
+                className="opacity-25"
+                cx="12"
+                cy="12"
+                r="10"
+                stroke="currentColor"
+                strokeWidth="4"
+              />
+              <path
+                className="opacity-75"
+                fill="currentColor"
+                d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4z"
+              />
+            </svg>
+            <span className="sr-only">Loading…</span>
+          </>
+        ) : (
+          <>
+            {leftIcon && <span aria-hidden="true">{leftIcon}</span>}
+            {children}
+            {rightIcon && <span aria-hidden="true">{rightIcon}</span>}
+          </>
+        )}
       </button>
     );
   }

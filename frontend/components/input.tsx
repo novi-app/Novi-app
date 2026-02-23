@@ -1,91 +1,107 @@
 import * as React from "react";
 
-interface InputProps extends React.InputHTMLAttributes<HTMLInputElement> {
+interface InputProps
+  extends Omit<React.InputHTMLAttributes<HTMLInputElement>, "size"> {
+  size?: "sm" | "md" | "lg";
   label?: string;
+  helperText?: string;
   error?: string;
-  icon?: React.ReactNode;
-  iconPosition?: "left" | "right";
-  variant?: "default" | "search";
+  leftIcon?: React.ReactNode;
+  rightIcon?: React.ReactNode;
 }
 
-/**
- * Novi Base Input
- * Production-ready with forwardRef, useId, accessibility
- * Large touch targets and clean labels
- */
+const sizeStyles = {
+  sm: "h-10 px-3 text-sm",
+  md: "h-12 px-4 text-base",
+  lg: "h-14 px-5 text-lg",
+};
+
+const iconPaddingLeft = {
+  sm: "pl-9",
+  md: "pl-11",
+  lg: "pl-12",
+};
+
+const iconPaddingRight = {
+  sm: "pr-9",
+  md: "pr-11",
+  lg: "pr-12",
+};
+
 export const Input = React.forwardRef<HTMLInputElement, InputProps>(
   (
     {
+      size = "md",
       label,
+      helperText,
       error,
-      className = "",
+      leftIcon,
+      rightIcon,
       id,
-      icon,
-      iconPosition = "left",
-      variant = "default",
+      className = "",
       ...props
     },
     ref
   ) => {
-    // Use React 18 useId for guaranteed unique IDs
     const generatedId = React.useId();
-    const inputId = id || generatedId;
-
-    const variantStyles = {
-      default: "bg-gray-50/50 border-gray-200",
-      search: "bg-gray-100 border-gray-300 rounded-full",
-    };
+    const inputId = id ?? generatedId;
+    const helperId = `${inputId}-helper`;
+    const hasError = Boolean(error);
 
     return (
-      <div className="w-full space-y-2">
+      <div className="flex flex-col w-full gap-1">
         {label && (
           <label
             htmlFor={inputId}
-            className="ml-1 text-sm font-semibold text-gray-700"
+            className="text-sm font-medium text-neutral-700"
           >
             {label}
           </label>
         )}
-        <div className="relative flex items-center">
-          {icon && iconPosition === "left" && (
-            <span className="absolute left-4 flex items-center justify-center text-gray-400">
-              {icon}
+
+        <div className="relative">
+          {leftIcon && (
+            <span className="absolute left-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none">
+              {leftIcon}
             </span>
           )}
+
           <input
             ref={ref}
             id={inputId}
+            aria-invalid={hasError}
+            aria-describedby={helperText || error ? helperId : undefined}
             className={`
-              flex h-14 w-full rounded-2xl border transition-all placeholder:text-gray-400
-              focus:outline-none focus:ring-4
-              disabled:cursor-not-allowed disabled:opacity-50
-              ${variantStyles[variant]}
-              ${icon && iconPosition === "left" ? "pl-12" : "px-4"}
-              ${icon && iconPosition === "right" ? "pr-12" : ""}
-              ${
-                error
-                  ? "border-red-500 focus:border-red-500 focus:ring-red-500/10"
-                  : "focus:border-[#FF8904] focus:ring-[#FF8904]/15"
+              w-full rounded-pill border bg-white text-neutral-900
+              placeholder:text-neutral-400
+              focus:outline-none focus:ring-2
+              disabled:opacity-50 disabled:cursor-not-allowed
+              transition-colors duration-150
+              ${hasError
+                ? "border-error focus:ring-error/40"
+                : "border-neutral-300 focus:ring-primary/50 focus:border-primary"
               }
+              ${sizeStyles[size]}
+              ${leftIcon ? iconPaddingLeft[size] : ""}
+              ${rightIcon ? iconPaddingRight[size] : ""}
               ${className}
             `}
-            aria-invalid={error ? true : false}
-            aria-describedby={error ? `${inputId}-error` : undefined}
             {...props}
           />
-          {icon && iconPosition === "right" && (
-            <span className="absolute right-4 flex items-center justify-center text-gray-400">
-              {icon}
+
+          {rightIcon && (
+            <span className="absolute right-3 top-1/2 -translate-y-1/2 text-neutral-400 pointer-events-none">
+              {rightIcon}
             </span>
           )}
         </div>
-        {error && (
+
+        {(error || helperText) && (
           <p
-            id={`${inputId}-error`}
-            className="ml-1 text-xs font-medium text-red-500"
-            role="alert"
+            id={helperId}
+            className={`text-xs ${hasError ? "text-error" : "text-neutral-500"}`}
           >
-            {error}
+            {error ?? helperText}
           </p>
         )}
       </div>

@@ -1,85 +1,71 @@
 import * as React from "react";
 
 interface CardProps extends React.HTMLAttributes<HTMLDivElement> {
-  variant?: "default" | "glass";
+  variant?: "default" | "elevated" | "float";
+  padding?: "none" | "sm" | "md" | "lg";
 }
+
+type CardSubComponents = {
+  Title: React.FC<{ children: React.ReactNode; className?: string }>;
+  Content: React.FC<{ children: React.ReactNode; className?: string }>;
+  Footer: React.FC<{ children: React.ReactNode; className?: string }>;
+};
+
+const variantStyles = {
+  default: "bg-white shadow-xs border border-neutral-100",
+  elevated: "bg-white shadow-card",
+  float: "bg-white shadow-float",
+};
+
+const paddingStyles = {
+  none: "",
+  sm: "p-3",
+  md: "p-4",
+  lg: "p-6",
+};
 
 /**
- * Novi Base Card
- * Production-ready with variant support
- * Mobile-first with optional glassmorphism
+ * Card container with semantic subcomponents.
+ *
+ * Usage:
+ *   <Card variant="elevated">
+ *     <Card.Title>Destination</Card.Title>
+ *     <Card.Content>Your content here.</Card.Content>
+ *     <Card.Footer><Button>Book</Button></Card.Footer>
+ *   </Card>
  */
-export const Card = React.forwardRef<HTMLDivElement, CardProps>(
-  ({ children, variant = "default", className = "", ...props }, ref) => {
-    const variants = {
-      default:
-        "bg-white border border-gray-200 shadow-sm hover:shadow-md transition-shadow",
-      glass:
-        "bg-white/80 backdrop-blur-xl border border-white/30 shadow-lg hover:shadow-xl transition-shadow",
-    };
-
-    return (
-      <div
-        ref={ref}
-        className={`
-          relative overflow-hidden rounded-3xl
-          ${variants[variant]}
-          ${className}
-        `}
-        {...props}
-      >
-        {children}
-      </div>
-    );
-  }
+export const Card: React.FC<CardProps> & CardSubComponents = ({
+  children,
+  variant = "default",
+  padding = "md",
+  className = "",
+  ...props
+}) => (
+  <div
+    className={`rounded-2xl ${variantStyles[variant]} ${paddingStyles[padding]} ${className}`}
+    {...props}
+  >
+    {children}
+  </div>
 );
 
-Card.displayName = "Card";
-
-interface CardHeaderProps extends React.HTMLAttributes<HTMLDivElement> {
-  image?: React.ReactNode;
-}
-
-export const CardHeader = React.forwardRef<HTMLDivElement, CardHeaderProps>(
-  ({ children, className = "", image, ...props }, ref) => {
-    return (
-      <div
-        ref={ref}
-        className={`relative overflow-hidden ${image ? "aspect-video" : "p-5"} ${className}`}
-        {...props}
-      >
-        {image || children}
-      </div>
-    );
-  }
+Card.Title = ({ children, className = "" }) => (
+  <h3 className={`text-lg font-semibold text-neutral-900 ${className}`}>
+    {children}
+  </h3>
 );
+Card.Title.displayName = "Card.Title";
 
-CardHeader.displayName = "CardHeader";
-
-interface CardContentProps extends React.HTMLAttributes<HTMLDivElement> {}
-
-export const CardContent = React.forwardRef<HTMLDivElement, CardContentProps>(
-  ({ children, className = "", ...props }, ref) => {
-    return (
-      <div ref={ref} className={`p-5 ${className}`} {...props}>
-        {children}
-      </div>
-    );
-  }
+Card.Content = ({ children, className = "" }) => (
+  <div className={`mt-2 text-sm text-neutral-600 leading-relaxed ${className}`}>
+    {children}
+  </div>
 );
+Card.Content.displayName = "Card.Content";
 
-CardContent.displayName = "CardContent";
-
-interface CardFooterProps extends React.HTMLAttributes<HTMLDivElement> {}
-
-export const CardFooter = React.forwardRef<HTMLDivElement, CardFooterProps>(
-  ({ children, className = "", ...props }, ref) => {
-    return (
-      <div ref={ref} className={`px-5 pb-5 flex gap-3 ${className}`} {...props}>
-        {children}
-      </div>
-    );
-  }
+Card.Footer = ({ children, className = "" }) => (
+  <div className={`mt-4 pt-4 border-t border-neutral-100 ${className}`}>
+    {children}
+  </div>
 );
-
-CardFooter.displayName = "CardFooter";
+Card.Footer.displayName = "Card.Footer";

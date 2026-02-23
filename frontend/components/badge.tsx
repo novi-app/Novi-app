@@ -1,74 +1,66 @@
 import * as React from "react";
 
+type BadgeVariant = "primary" | "secondary" | "success" | "warning" | "error" | "neutral";
+type BadgeSize = "sm" | "md" | "lg";
+
 interface BadgeProps extends React.HTMLAttributes<HTMLSpanElement> {
-  variant?: "primary" | "secondary" | "outline" | "success" | "warning" | "danger";
-  size?: "sm" | "md";
-  icon?: React.ReactNode;
-  onClick?: (e: React.MouseEvent<HTMLSpanElement>) => void;
+  variant?: BadgeVariant;
+  size?: BadgeSize;
+  dot?: boolean;
+  children: React.ReactNode;
 }
 
-/**
- * Novi Base Badge/Tag
- * Reusable for status, filters, tags, and interactive chips
- * Supports theme tokens for scalability
- */
-export const Badge = React.forwardRef<HTMLSpanElement, BadgeProps>(
-  (
-    {
-      children,
-      variant = "primary",
-      size = "md",
-      icon,
-      onClick,
-      className = "",
-      ...props
-    },
-    ref
-  ) => {
-    const variants = {
-      primary: "bg-[#FF8904]/15 text-[#FF8904]",
-      secondary: "bg-[#05DF72]/15 text-[#05DF72]",
-      outline: "border border-gray-300 bg-white text-gray-700",
-      success: "bg-green-100 text-green-800",
-      warning: "bg-yellow-100 text-yellow-800",
-      danger: "bg-red-100 text-red-800",
-    };
+const variantStyles: Record<BadgeVariant, string> = {
+  primary: "bg-primary-subtle text-primary-strong",
+  secondary: "bg-secondary-subtle text-secondary-strong",
+  success: "bg-green-100 text-green-700",
+  warning: "bg-amber-100 text-amber-700",
+  error: "bg-red-100 text-red-700",
+  neutral: "bg-neutral-100 text-neutral-600",
+};
 
-    const sizes = {
-      sm: "px-2 py-1 text-xs",
-      md: "px-3 py-1.5 text-xs",
-    };
+const dotColors: Record<BadgeVariant, string> = {
+  primary: "bg-primary",
+  secondary: "bg-secondary",
+  success: "bg-success",
+  warning: "bg-warning",
+  error: "bg-error",
+  neutral: "bg-neutral-400",
+};
 
-    return (
-      <span
-        ref={ref}
-        onClick={onClick}
-        className={`
-          inline-flex items-center gap-1.5 rounded-full font-semibold uppercase tracking-wide
-          ${variants[variant]}
-          ${sizes[size]}
-          ${onClick ? "cursor-pointer hover:opacity-80 transition-opacity" : ""}
-          ${className}
-        `}
-        role={onClick ? "button" : undefined}
-        tabIndex={onClick ? 0 : undefined}
-        onKeyDown={
-          onClick
-            ? (e) => {
-                if (e.key === "Enter" || e.key === " ") {
-                  e.preventDefault();
-                  onClick(e as any);
-                }
-              }
-            : undefined
-        }
-        {...props}
-      >
-        {icon && <span className="flex items-center justify-center">{icon}</span>}
-        {children}
-      </span>
-    );
-  }
-);
+const sizeStyles: Record<BadgeSize, string> = {
+  sm: "px-2 py-0.5 text-xs",
+  md: "px-2.5 py-1 text-sm",
+  lg: "px-3 py-1.5 text-base",
+};
+
+export const Badge: React.FC<BadgeProps> = ({
+  variant = "neutral",
+  size = "md",
+  dot = false,
+  children,
+  className = "",
+  ...props
+}) => {
+  return (
+    <span
+      className={`
+        inline-flex items-center gap-1.5 font-medium rounded-pill
+        ${variantStyles[variant]}
+        ${sizeStyles[size]}
+        ${className}
+      `}
+      {...props}
+    >
+      {dot && (
+        <span
+          className={`inline-block h-1.5 w-1.5 rounded-full ${dotColors[variant]}`}
+          aria-hidden="true"
+        />
+      )}
+      {children}
+    </span>
+  );
+};
 
 Badge.displayName = "Badge";
