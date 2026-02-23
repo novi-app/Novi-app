@@ -17,7 +17,17 @@ async def onboard_user_endpoint(request: OnboardingRequest):
     """
     try:
         result = onboard_user(request.preferences)
-        return result
+        
+        # Note: We're returning the embedding for now to show it works
+        # In production, we'd save to DB and NOT return the embedding
+        # (it's 1536 numbers, too large for API response)
+        
+        return {
+            "user_id": result["user_id"],
+            "status": result["status"],
+            "embedding_preview": result["embedding"][:5],  # Just first 5 for testing
+            "embedding_dimensions": len(result["embedding"])
+        }
     
     except Exception as e:
         raise HTTPException(
