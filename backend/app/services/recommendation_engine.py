@@ -97,8 +97,8 @@ def get_recommendations(
     # 3. Filter by distance and compute similarity
     for venue in all_venues:
         # Check location exists
-        venue_lat = venue.get("location", {}).get("lat")
-        venue_lon = venue.get("location", {}).get("lng")
+        venue_lat = venue.get("location", {}).get("latitude")
+        venue_lon = venue.get("location", {}).get("longitude")
         if venue_lat is None or venue_lon is None:
             continue
         
