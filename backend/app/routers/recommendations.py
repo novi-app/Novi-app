@@ -4,35 +4,44 @@ from app.services.recommendation_engine import get_recommendations
 
 router = APIRouter(prefix="/api/recommendations", tags=["recommendations"])
 
-@router.post("/top3")
-async def get_recommendations_endpoint(request: RecommendationRequest):
-    userid = request.user_id
-    useremb = request.user_emb
-    lat = request.location.lat
-    lng = request.location.lng
-    category = request.intent
 
-    scored_venues = []
+@router.post("")
+async def get_venue_recommendations(request: RecommendationRequest):
+    """
+    Get personalized venue recommendations for a user.
+    
+    Request body:
+    {
+        "user_id": "user_abc123",
+        "location": {"lat": 35.6762, "lng": 139.6503},
+        "intent": "restaurant"  // or "cafe", "bar", "any"
+    }
+    
+    Returns top 3 venue recommendations based on:
+    - Semantic similarity (user preferences vs venue attributes)
+    - Solo-friendliness score
+    - Distance from user location
+    """
     try:
-        top10 = get_recommendations(userid, useremb, lat, lng, category=category)
-
-        for venue in top10:
-            solo_score = venue.get("solo_score", 50) / 100.0
-            sim_score = venue.get("similarity_score", 0.0)
-
-            # Hybrid Scoring (60/40 Split)
-            final_hybrid_score = (0.6 * sim_score) + (0.4 * solo_score)
-
-            venue_copy = venue.copy()
-            venue_copy["hybrid_score"] = round(final_hybrid_score, 4)
-            
-            scored_venues.append(venue_copy)
-
-        # 4. Sort by our new hybrid_score descending and slice top 3
-        scored_venues.sort(key=lambda x: x["hybrid_score"], reverse=True)
-        top_3 = scored_venues[:3]
-
-        return {"recommendations": top_3}
-
+        recommendations = get_recommendations(
+            user_id=request.user_id,
+            user_lat=request.location.lat,
+            user_lon=request.location.lng,
+            intent=request.intent,
+            radius_km=5.0,
+            limit=3
+        )
+        
+        return {
+            "recommendations": recommendations,
+            "count": len(recommendations)
+        }
+        
+    except ValueError as e:
+        raise HTTPException(status_code=404, detail=str(e))
     except Exception as e:
-        raise HTTPException(status_code=500, detail=f"Recommendation engine failed: {str(e)}")
+        raise HTTPException(
+            status_code=500,
+            detail=f"Failed to get recommendations: {str(e)}"
+        )
+    

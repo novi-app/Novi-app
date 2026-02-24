@@ -1,8 +1,14 @@
+"""
+One-time script to generate embeddings and AI insights for all venues.
+Combines DATA-005 (embeddings), DATA-007 (solo scores), DATA-008 (pro tips).
+
+Usage: python scripts/generate_embeddings.py
+"""
 import json
 import os
 import sys
 from pathlib import Path
-from typing import Dict, List, Any
+from typing import Dict, List, Any, Tuple
 
 # Add parent directory to path so we can import from app/
 sys.path.insert(0, str(Path(__file__).parent.parent))
@@ -22,28 +28,23 @@ def generate_embedding(venue_text: str) -> List[float]:
         )
         return response.data[0].embedding
     except Exception as e:
-        print(f"OpenAI API error: {e}")
-        raise
+        raise Exception(f"Embedding API error: {e}")
 
 def create_venue_text(venue: Dict[str, Any]) -> str:
     parts = [
-        venue.get('name', ''),
-        venue.get('category', ''),
-        venue.get('description', ''),
+        venue.get("name", ""),
+        venue.get("category", ""),
+        venue.get("description", ""),
     ]
-    
-    # Filter out empty values and join
-    text = ' '.join(filter(None, parts))
-    return text.strip()
+    return " ".join(filter(None, parts)).strip()
+
 
 def load_venues(filepath: str) -> List[Dict[str, Any]]:
-    if not os.path.exists(filepath):
-        raise FileNotFoundError(
-            f"{filepath} not found!\n"
-            f"Please run collect_venues.py first to create this file."
-        )
+    path = Path(filepath)
+    if not path.exists():
+        raise FileNotFoundError(f"{filepath} not found! Run setup_venues.py first.")
     
-    with open(filepath, 'r', encoding='utf-8') as f:
+    with open(path, "r", encoding="utf-8") as f:
         venues = json.load(f)
     
     if not venues:
@@ -53,30 +54,27 @@ def load_venues(filepath: str) -> List[Dict[str, Any]]:
 
 def upload_to_firebase(venue: Dict[str, Any]) -> None:
     db = get_db()
-
-    doc_id = venue.get('place_id')
+    doc_id = venue.get("place_id")
     if not doc_id:
         raise ValueError(f"Venue missing place_id: {venue.get('name')}")
     
-    # Upload to Firestore
-    db.collection('venues').document(doc_id).set(venue)
-
-def generate_venue_insights(venue_text: str) -> Dict[str, Any]:
+    db.collection("venues").document(doc_id).set(venue)
+def generate_venue_insights(venue_text: str) -> Tuple[int, str, str]:
     """
-    Generate solo score, reason, and pro tip using GPT-4 JSON mode.
+    Generate solo score, reason, and pro tip using GPT-4.
+    Returns: (solo_score, solo_reason, pro_tip)
     """
     system_prompt = (
-        "You are a Tokyo travel expert for solo travelers. Analyze the provided venue. "
-        "You must respond in JSON format with exactly three keys:\n"
-        "1. 'solo_score': an integer from 0 to 100 rating how solo-friendly it is.\n"
-        "2. 'solo_reason': a short string explaining the score.\n"
-        "3. 'pro_tip': one specific insider tip for a solo traveler (maximum 20 words)."
+        "You are a Tokyo travel expert for solo travelers. Analyze the venue. "
+        "Respond in JSON with exactly three keys:\n"
+        "1. 'solo_score': integer 0-100 rating solo-friendliness\n"
+        "2. 'solo_reason': short explanation (max 30 words)\n"
+        "3. 'pro_tip': one specific insider tip for solo travelers (max 20 words)"
     )
 
     try:
-        # Note: using gpt-4-turbo as it natively supports strict JSON mode
         response = client.chat.completions.create(
-            model="gpt-4-turbo", 
+            model="gpt-4o",
             response_format={"type": "json_object"},
             messages=[
                 {"role": "system", "content": system_prompt},
@@ -86,35 +84,40 @@ def generate_venue_insights(venue_text: str) -> Dict[str, Any]:
         )
         
         result = json.loads(response.choices[0].message.content)
-
-        solo_score = int(result.get('solo_score', 0))
-        solo_reason = str(result.get('solo_reason', 'No reason provided.'))
-        pro_tip = str(result.get('pro_tip', 'No tip available.'))
+        
+        solo_score = int(result.get("solo_score", 50))
+        solo_reason = str(result.get("solo_reason", "No reason provided"))
+        pro_tip = str(result.get("pro_tip", "No tip available"))
+        
         return solo_score, solo_reason, pro_tip
         
     except Exception as e:
-        print(f"GPT-4 API error: {e}")
-        raise
+        raise Exception(f"GPT-4 API error: {e}")
 
 
-#-----------------------------------------------------------------------------------------------------
-#-----------------------------------------------------------------------------------------------------
+
 def main():
-    """
-    Main execution function.
-    """
+    print("=" * 60)
+    print("NOVI VENUE PIPELINE")
+    print("Embeddings + Solo Scores + Pro Tips")
+    print("=" * 60)
+    print()
+    
+    # Initialize Firebase
     print("Initializing Firebase...")
     try:
         initialize_firebase()
         print("Firebase connected\n")
     except Exception as e:
         print(f"Firebase initialization failed: {e}")
-        print("Make sure firebase-service-account.json exists")
         sys.exit(1)
     
-    print("Loading venues from venues_raw.json...")
+    # Load venues
+    print("Loading venues...")
+    venue_file = Path("data/venues/venues_raw.json")
+    
     try:
-        venues = load_venues(r'data\venues\venues_raw.json')
+        venues = load_venues(venue_file)
         print(f"Loaded {len(venues)} venues\n")
     except Exception as e:
         print(f"{e}")
@@ -124,16 +127,7 @@ def main():
     if not settings.OPENAI_API_KEY:
         print("OPENAI_API_KEY not set in .env")
         sys.exit(1)
-    print(f"API key found (starts with: {settings.OPENAI_API_KEY[:10]}...)\n")
-    
-    # Estimate cost
-    embedding_cost = 0.0001
-    gpt4_cost = 0.015  # Approx $0.015 for prompt + completion tokens per venue
-    cost_per_venue = embedding_cost + gpt4_cost
-    
-    estimated_cost = len(venues) * cost_per_venue
-    print(f"Estimated cost: ~${estimated_cost:.4f}")
-    print(f"   ({len(venues)} venues × ~${cost_per_venue} per venue for Embedding + GPT-4)\n")
+    print(f"Found (starts with: {settings.OPENAI_API_KEY[:10]}...)\n")
 
     confirm = input("Continue? (y/n): ")
     if confirm.lower() != 'y':
@@ -141,59 +135,69 @@ def main():
         sys.exit(0)
     print()
     
+    # Process venues
     print("Processing venues...")
     print("-" * 60)
     
-    success_count = 0
-    error_count = 0
+    success = 0
+    errors = 0
     
     for i, venue in enumerate(venues, 1):
+        venue_name = venue.get("name", "Unknown")
+        
         try:
+            # Create text
             text = create_venue_text(venue)
+            
+            print(f"[{i}/{len(venues)}] {venue_name}")
+            print(f"Text: {text[:60]}...")
+            
+            # Generate embedding
             embedding = generate_embedding(text)
+            print(f"Embedding: {len(embedding)} dims")
+            
+            # Generate AI insights
             solo_score, solo_reason, pro_tip = generate_venue_insights(text)
+            print(f"Solo score: {solo_score}/100")
+            print(f"Tip: {pro_tip[:40]}...")
             
-            # Add embedding to venue object
-            venue['embedding'] = embedding
-            venue['solo_score'] = solo_score
-            venue['solo_reason'] = solo_reason
-            venue['pro_tip'] = pro_tip
+            # Add to venue
+            venue["embedding"] = embedding
+            venue["solo_score"] = solo_score
+            venue["solo_reason"] = solo_reason
+            venue["pro_tip"] = pro_tip
             
-            # Upload to Firebase
+            # Upload
             upload_to_firebase(venue)
+            print(f"Uploaded to Firebase")
+            print()
             
-            success_count += 1
+            success += 1
             
         except Exception as e:
             print(f"Error: {e}")
             print()
-            error_count += 1
+            errors += 1
             
-            # Ask if should continue on error
-            if error_count >= 3:
-                cont = input("Multiple errors detected. Continue? (y/n): ")
-                if cont.lower() != 'y':
+            if errors >= 3:
+                cont = input("Multiple errors. Continue? (y/n): ")
+                if cont.lower() != "y":
                     break
     
-    # Step 7: Summary
+    # Summary
     print("-" * 60)
     print("\nSUMMARY")
     print("=" * 60)
-    print(f"Successful: {success_count}/{len(venues)}")
-    print(f"Failed:     {error_count}/{len(venues)}")
-    print(f"Actual cost: ~${success_count * cost_per_venue:.4f}")
-    print()
+    print(f"Successful: {success}/{len(venues)}")
+    print(f"Failed:     {errors}/{len(venues)}")
     
-    if success_count == len(venues):
-        print("All venues processed successfully!")
-        print("Embeddings are now cached in Firebase.")
-        print("You can delete venues_raw.json if desired.")
-    elif success_count > 0:
-        print("Some venues failed. Check errors above.")
-        print("You can re-run this script to retry failed venues.")
+    if success == len(venues):
+        print("All venues processed!")
+        print("Data is now in Firebase with embeddings, scores, and tips.")
+    elif success > 0:
+        print("Some failed. Re-run to retry.")
     else:
-        print("No venues were processed successfully.")
-        print("Check your OpenAI API key and Firebase connection.")
+        print("No venues processed. Check API keys and Firebase.")
     
     print()
 
