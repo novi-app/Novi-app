@@ -1,5 +1,4 @@
 from pydantic import BaseModel
-from typing import List, Dict, Any
 
 class LocationInput(BaseModel):
     lat: float
@@ -7,6 +6,5 @@ class LocationInput(BaseModel):
 
 class RecommendationRequest(BaseModel):
     user_id: str
-    user_emb: List
     location: LocationInput
-    intent: str  # e.g., "dinner", "cafe", "sightseeing"
+    intent: str = "any"  # "restaurant", "cafe", "bar", "any"
