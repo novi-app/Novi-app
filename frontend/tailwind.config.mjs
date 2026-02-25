@@ -5,6 +5,7 @@ const config = {
   theme: {
     extend: {
       colors: {
+        // Brand colors - change these to update the entire theme
         primary: {
           DEFAULT: "#FF7A45",   
           soft: "#FFB199",      
@@ -19,6 +20,26 @@ const config = {
           subtle: "#E8F1FF",
           strong: "#1C60C7",
           contrast: "#FFFFFF",
+        },
+
+        // Accent (orange) - used for CTAs, selected states
+        accent: {
+          DEFAULT: "#FF7A00",
+          hover: "#E56D00",
+          light: "#FFF8F3",
+        },
+
+        // Teal - onboarding theme color
+        teal: {
+          DEFAULT: "#4A9B9B",
+          hover: "#3D8585",
+          light: "#E8F4F4",
+        },
+
+        // Rose - onboarding accent color
+        rose: {
+          DEFAULT: "#C77D8E",
+          light: "#FDF2F4",
         },
 
         neutral: {
