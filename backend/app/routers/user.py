@@ -8,19 +8,12 @@ router = APIRouter(prefix="/api/user", tags=["user"])
 @router.post("/onboard", response_model=OnboardingResponse)
 async def onboard_user_endpoint(request: OnboardingRequest):
     """
-    Create user profile (stub implementation).
-    - Generate user embedding from preferences
-    - Save user + embedding to Firebase
-    - Return permanent user_id
+    Create user profile with embedding and save to Firebase.
     """
     try:
         # Calling the service layer to save to the database
         result = onboard_user(request.preferences)
-        
-        return {
-            "user_id": result["user_id"],
-            "status": result["status"],
-        }
+        return result
     
     except ValueError as ve:
         # Catch custom logic errors (e.g., invalid budget string)
