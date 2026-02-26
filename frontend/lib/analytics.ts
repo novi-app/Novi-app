@@ -1,40 +1,78 @@
 import { getAnalytics, logEvent, isSupported } from "firebase/analytics";
-import type { EventName, EventProperties, BaseEventProperties } from "./events";
+import mixpanel from "mixpanel-browser";
+import type { EventName, EventProperties, BaseEventProperties, FreezeRuleType, InterventionLevel } from "./events";
 
-let analyticsInstance: ReturnType<typeof getAnalytics> | null = null;
+
+let firebaseAnalytics: ReturnType<typeof getAnalytics> | null = null;
+let mixpanelInitialized = false;
 let sessionId: string | null = null;
 
 /**
- * Initialize analytics and generate session ID
+ * Initialize Firebase Analytics
  */
-async function initAnalytics() {
+async function initFirebase() {
   if (typeof window === "undefined") return null;
-
+  
   const supported = await isSupported();
   if (!supported) return null;
-
-  if (!analyticsInstance) {
+  
+  if (!firebaseAnalytics) {
     const { getAnalytics } = await import("firebase/analytics");
-    const app = await (await import("./firebase")).default;
-    analyticsInstance = getAnalytics(app);
+    const app = await import("./firebase").then(m => m.default);
+    firebaseAnalytics = getAnalytics(app);
   }
-
-  // Generate session ID if not exists
+  
   if (!sessionId) {
     sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
   }
-
-  return analyticsInstance;
+  
+  return firebaseAnalytics;
 }
 
 /**
- * Get base event properties (common to all events)
+ * Initialize Mixpanel
  */
-function getBaseProperties(): Omit<BaseEventProperties, "session_id" | "timestamp"> {
-  const userId = typeof window !== "undefined"
-    ? localStorage.getItem("novi_user_id")
-    : null;
+function initMixpanel() {
+  if (mixpanelInitialized) return;
+  if (typeof window === "undefined") return;
+  
+  const token = process.env.NEXT_PUBLIC_MIXPANEL_TOKEN;
+  if (!token) {
+    console.warn("Mixpanel token not found, skipping Mixpanel initialization");
+    return;
+  }
+  
+  try {
+    mixpanel.init(token, {
+      track_pageview: false,
+      persistence: "localStorage",
+      ignore_dnt: false, // Respect Do Not Track
+    });
+    mixpanelInitialized = true;
+    console.log("Mixpanel initialized");
+  } catch (error) {
+    console.error("Failed to initialize Mixpanel:", error);
+  }
+}
 
+/**
+ * Initialize both analytics systems
+ */
+async function initAnalytics() {
+  await initFirebase();
+  initMixpanel();
+}
+
+// Auto-initialize on import
+if (typeof window !== "undefined") {
+  initAnalytics();
+}
+
+function getBaseProperties(): Omit<BaseEventProperties, "session_id" | "timestamp"> {
+  const userId = typeof window !== "undefined" 
+    ? localStorage.getItem("novi_user_id") 
+    : null;
+  
   return {
     user_id: userId || undefined,
     page_path: typeof window !== "undefined" ? window.location.pathname : "",
@@ -46,7 +84,6 @@ function getBaseProperties(): Omit<BaseEventProperties, "session_id" | "timestam
 
 function getDeviceType(): "mobile" | "tablet" | "desktop" {
   if (typeof window === "undefined") return "desktop";
-
   const width = window.innerWidth;
   if (width < 768) return "mobile";
   if (width < 1024) return "tablet";
@@ -55,7 +92,6 @@ function getDeviceType(): "mobile" | "tablet" | "desktop" {
 
 function getBrowser(): string {
   if (typeof window === "undefined") return "unknown";
-
   const ua = navigator.userAgent;
   if (ua.includes("Chrome")) return "Chrome";
   if (ua.includes("Safari")) return "Safari";
@@ -63,39 +99,55 @@ function getBrowser(): string {
   if (ua.includes("Edge")) return "Edge";
   return "Other";
 }
-
 /**
- * Track an event with type-safe properties
+ * Track event to both Firebase Analytics and Mixpanel
  */
 export async function trackEvent<T extends EventName>(
   eventName: T,
   properties?: Omit<EventProperties<T>, keyof BaseEventProperties>
 ) {
   try {
-    const analytics = await initAnalytics();
-    if (!analytics || !sessionId) {
-      console.warn("Analytics not available");
-      return;
-    }
-
     const fullProperties = {
       ...getBaseProperties(),
       session_id: sessionId,
       timestamp: Date.now(),
       ...properties,
     };
-
-    logEvent(analytics, eventName, fullProperties);
-
+    
+    // Send to Firebase Analytics
+    if (firebaseAnalytics || (await initFirebase())) {
+      logEvent(firebaseAnalytics!, eventName, fullProperties);
+    }
+    
+    // Send to Mixpanel
+    if (mixpanelInitialized) {
+      mixpanel.track(eventName, fullProperties);
+    }
+    
     console.log(`Event tracked: ${eventName}`, fullProperties);
-
+    
   } catch (error) {
     console.error("Failed to track event:", error);
   }
 }
 
-// Convenience functions for common events
-export const trackOnboardingStarted = () =>
+export function identifyUser(userId: string, properties?: Record<string, any>) {
+  if (!mixpanelInitialized) return;
+  
+  try {
+    mixpanel.identify(userId);
+    
+    if (properties) {
+      mixpanel.people.set(properties);
+    }
+    
+    console.log(`User identified: ${userId}`);
+  } catch (error) {
+    console.error("Failed to identify user:", error);
+  }
+}
+
+export const trackOnboardingStarted = () => 
   trackEvent("onboarding_started");
 
 export const trackOnboardingStepCompleted = (
@@ -103,7 +155,7 @@ export const trackOnboardingStepCompleted = (
   stepName: "dietary" | "budget" | "activity",
   selections: string[] | number,
   timeOnStepSeconds: number
-) =>
+) => 
   trackEvent("onboarding_step_completed", {
     step_number: stepNumber,
     step_name: stepName,
@@ -116,7 +168,7 @@ export const trackOnboardingCompleted = (
   dietarySelections: string[],
   budgetLevel: number,
   activitySelections: string[]
-) =>
+) => 
   trackEvent("onboarding_completed", {
     total_time_seconds: totalTimeSeconds,
     dietary_selections: dietarySelections,
@@ -128,7 +180,7 @@ export const trackRecommendationsViewed = (
   count: number,
   intentFilter: string,
   userLocation: { lat: number; lng: number }
-) =>
+) => 
   trackEvent("recommendations_viewed", {
     recommendation_count: count,
     intent_filter: intentFilter,
@@ -142,7 +194,7 @@ export const trackRecommendationCardClicked = (
   cardPosition: number,
   combinedScore: number,
   distanceKm: number
-) =>
+) => 
   trackEvent("recommendation_card_clicked", {
     venue_id: venueId,
     venue_name: venueName,
@@ -156,7 +208,7 @@ export const trackFilterChanged = (
   previousFilter: string,
   newFilter: string,
   changeCount: number
-) =>
+) => 
   trackEvent("filter_changed", {
     previous_filter: previousFilter,
     new_filter: newFilter,
@@ -167,7 +219,7 @@ export const trackFreezeDetected = (
   ruleType: string,
   level: "GENTLE" | "MODERATE" | "URGENT",
   triggerContext: any
-) =>
+) => 
   trackEvent("freeze_detected", {
     rule_type: ruleType as any,
     level,
@@ -175,12 +227,12 @@ export const trackFreezeDetected = (
   });
 
 export const trackInterventionShown = (
-  interventionType: "GENTLE" | "MODERATE" | "URGENT",
-  triggerRule: "exploration_stall" | "scroll_indecision" | "filter_cycling" | "card_reclicking" | "full_inactivity",
+  interventionType: InterventionLevel,
+  triggerRule: FreezeRuleType,
   recommendedVenueId: string,
   recommendedVenueName: string,
   timeUntilShownSeconds: number
-) =>
+) => 
   trackEvent("intervention_shown", {
     intervention_type: interventionType,
     trigger_rule: triggerRule,
@@ -190,11 +242,11 @@ export const trackInterventionShown = (
   });
 
 export const trackInterventionResponse = (
-  interventionType: "GENTLE" | "MODERATE" | "URGENT",
+  interventionType: InterventionLevel,
   response: "dismissed" | "accepted",
   timeToRespondSeconds: number,
   dismissalCount: number
-) =>
+) => 
   trackEvent(
     response === "dismissed" ? "intervention_dismissed" : "intervention_accepted",
     {
@@ -210,14 +262,14 @@ export const trackDirectionsClicked = (
   venueName: string,
   venueCategory: string,
   distanceKm: number
-) =>
+) => 
   trackEvent("directions_clicked", {
     venue_id: venueId,
     venue_name: venueName,
     venue_category: venueCategory,
     distance_km: distanceKm,
   });
-
+  
 export const trackRecommendationDetailsViewed = (
   venueId: string,
   venueName: string,
