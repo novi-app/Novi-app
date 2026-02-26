@@ -1,56 +1,249 @@
-import { getAnalytics, logEvent, isSupported, Analytics } from "firebase/analytics";
-import app from "@/lib/firebase";
+import { getAnalytics, logEvent, isSupported } from "firebase/analytics";
+import type { EventName, EventProperties, BaseEventProperties } from "./events";
 
-// Initialize analytics (lazy - only in browser)
-let analytics: Analytics | null = null;
+let analyticsInstance: ReturnType<typeof getAnalytics> | null = null;
+let sessionId: string | null = null;
 
-if (typeof window !== "undefined") {
-  isSupported()
-    .then((supported) => {
-      if (supported) {
-        analytics = getAnalytics(app);
-      }
-    })
-    .catch(() => {
-      console.warn("[analytics] Firebase Analytics not supported");
-    });
+/**
+ * Initialize analytics and generate session ID
+ */
+async function initAnalytics() {
+  if (typeof window === "undefined") return null;
+
+  const supported = await isSupported();
+  if (!supported) return null;
+
+  if (!analyticsInstance) {
+    const { getAnalytics } = await import("firebase/analytics");
+    const app = await (await import("./firebase")).default;
+    analyticsInstance = getAnalytics(app);
+  }
+
+  // Generate session ID if not exists
+  if (!sessionId) {
+    sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+  }
+
+  return analyticsInstance;
 }
 
-async function safeLogEvent(
-  eventName: string,
-  params?: Record<string, unknown>
-): Promise<void> {
-  if (typeof window === "undefined") return;
+/**
+ * Get base event properties (common to all events)
+ */
+function getBaseProperties(): Omit<BaseEventProperties, "session_id" | "timestamp"> {
+  const userId = typeof window !== "undefined"
+    ? localStorage.getItem("novi_user_id")
+    : null;
 
+  return {
+    user_id: userId || undefined,
+    page_path: typeof window !== "undefined" ? window.location.pathname : "",
+    page_title: typeof window !== "undefined" ? document.title : "",
+    device_type: getDeviceType(),
+    browser: getBrowser(),
+  };
+}
+
+function getDeviceType(): "mobile" | "tablet" | "desktop" {
+  if (typeof window === "undefined") return "desktop";
+
+  const width = window.innerWidth;
+  if (width < 768) return "mobile";
+  if (width < 1024) return "tablet";
+  return "desktop";
+}
+
+function getBrowser(): string {
+  if (typeof window === "undefined") return "unknown";
+
+  const ua = navigator.userAgent;
+  if (ua.includes("Chrome")) return "Chrome";
+  if (ua.includes("Safari")) return "Safari";
+  if (ua.includes("Firefox")) return "Firefox";
+  if (ua.includes("Edge")) return "Edge";
+  return "Other";
+}
+
+/**
+ * Track an event with type-safe properties
+ */
+export async function trackEvent<T extends EventName>(
+  eventName: T,
+  properties?: Omit<EventProperties<T>, keyof BaseEventProperties>
+) {
   try {
-    const supported = await isSupported().catch(() => false);
-    if (!supported || !analytics) return;
+    const analytics = await initAnalytics();
+    if (!analytics || !sessionId) {
+      console.warn("Analytics not available");
+      return;
+    }
 
-    logEvent(analytics, eventName, params);
-  } catch (err) {
-    console.warn(`[analytics] failed to log '${eventName}'`, err);
+    const fullProperties = {
+      ...getBaseProperties(),
+      session_id: sessionId,
+      timestamp: Date.now(),
+      ...properties,
+    };
+
+    logEvent(analytics, eventName, fullProperties);
+
+    console.log(`Event tracked: ${eventName}`, fullProperties);
+
+  } catch (error) {
+    console.error("Failed to track event:", error);
   }
 }
 
+// Convenience functions for common events
+export const trackOnboardingStarted = () =>
+  trackEvent("onboarding_started");
 
-export async function trackPageView(path: string): Promise<void> {
-  await safeLogEvent("page_view", { page_path: path });
-}
+export const trackOnboardingStepCompleted = (
+  stepNumber: number,
+  stepName: "dietary" | "budget" | "activity",
+  selections: string[] | number,
+  timeOnStepSeconds: number
+) =>
+  trackEvent("onboarding_step_completed", {
+    step_number: stepNumber,
+    step_name: stepName,
+    selections,
+    time_on_step_seconds: timeOnStepSeconds,
+  });
 
+export const trackOnboardingCompleted = (
+  totalTimeSeconds: number,
+  dietarySelections: string[],
+  budgetLevel: number,
+  activitySelections: string[]
+) =>
+  trackEvent("onboarding_completed", {
+    total_time_seconds: totalTimeSeconds,
+    dietary_selections: dietarySelections,
+    budget_level: budgetLevel,
+    activity_selections: activitySelections,
+  });
 
-export async function trackOnboardingStart(): Promise<void> {
-  await safeLogEvent("onboarding_start");
-}
+export const trackRecommendationsViewed = (
+  count: number,
+  intentFilter: string,
+  userLocation: { lat: number; lng: number }
+) =>
+  trackEvent("recommendations_viewed", {
+    recommendation_count: count,
+    intent_filter: intentFilter,
+    user_location: userLocation,
+  });
 
+export const trackRecommendationCardClicked = (
+  venueId: string,
+  venueName: string,
+  venueCategory: string,
+  cardPosition: number,
+  combinedScore: number,
+  distanceKm: number
+) =>
+  trackEvent("recommendation_card_clicked", {
+    venue_id: venueId,
+    venue_name: venueName,
+    venue_category: venueCategory,
+    card_position: cardPosition,
+    combined_score: combinedScore,
+    distance_km: distanceKm,
+  });
 
-export async function trackOnboardingComplete(): Promise<void> {
-  await safeLogEvent("onboarding_complete");
-}
+export const trackFilterChanged = (
+  previousFilter: string,
+  newFilter: string,
+  changeCount: number
+) =>
+  trackEvent("filter_changed", {
+    previous_filter: previousFilter,
+    new_filter: newFilter,
+    change_count: changeCount,
+  });
 
-export async function trackRecommendationView(venueId: string): Promise<void> {
-  await safeLogEvent("recommendation_view", { venue_id: venueId });
-}
+export const trackFreezeDetected = (
+  ruleType: string,
+  level: "GENTLE" | "MODERATE" | "URGENT",
+  triggerContext: any
+) =>
+  trackEvent("freeze_detected", {
+    rule_type: ruleType as any,
+    level,
+    trigger_context: triggerContext,
+  });
 
-export async function trackInterventionShown(triggerType: string): Promise<void> {
-  await safeLogEvent("intervention_shown", { trigger_type: triggerType });
-}
+export const trackInterventionShown = (
+  interventionType: "GENTLE" | "MODERATE" | "URGENT",
+  triggerRule: "exploration_stall" | "scroll_indecision" | "filter_cycling" | "card_reclicking" | "full_inactivity",
+  recommendedVenueId: string,
+  recommendedVenueName: string,
+  timeUntilShownSeconds: number
+) =>
+  trackEvent("intervention_shown", {
+    intervention_type: interventionType,
+    trigger_rule: triggerRule,
+    recommended_venue_id: recommendedVenueId,
+    recommended_venue_name: recommendedVenueName,
+    time_until_shown_seconds: timeUntilShownSeconds,
+  });
+
+export const trackInterventionResponse = (
+  interventionType: "GENTLE" | "MODERATE" | "URGENT",
+  response: "dismissed" | "accepted",
+  timeToRespondSeconds: number,
+  dismissalCount: number
+) =>
+  trackEvent(
+    response === "dismissed" ? "intervention_dismissed" : "intervention_accepted",
+    {
+      intervention_type: interventionType,
+      response,
+      time_to_respond_seconds: timeToRespondSeconds,
+      dismissal_count: dismissalCount,
+    }
+  );
+
+export const trackDirectionsClicked = (
+  venueId: string,
+  venueName: string,
+  venueCategory: string,
+  distanceKm: number
+) =>
+  trackEvent("directions_clicked", {
+    venue_id: venueId,
+    venue_name: venueName,
+    venue_category: venueCategory,
+    distance_km: distanceKm,
+  });
+
+export const trackRecommendationDetailsViewed = (
+  venueId: string,
+  venueName: string,
+  venueCategory: string,
+  cardPosition: number,
+  combinedScore: number,
+  distanceKm: number
+) => 
+  trackEvent("recommendation_details_viewed", {
+    venue_id: venueId,
+    venue_name: venueName,
+    venue_category: venueCategory,
+    card_position: cardPosition,
+    combined_score: combinedScore,
+    distance_km: distanceKm,
+  });
+
+export const trackRouteCheck = (
+  venueId: string,
+  venueName: string,
+  checkCount: number,
+  timeSinceLastCheck?: number
+) => 
+  trackEvent("route_check", {
+    venue_id: venueId,
+    venue_name: venueName,
+    check_count: checkCount,
+    time_since_last_check_seconds: timeSinceLastCheck,
+  });
