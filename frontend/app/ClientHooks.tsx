@@ -5,14 +5,12 @@ import Script from "next/script"
 import { useScrollTracking } from "@/hooks/useScrollTracking"
 import { useDwellTime } from "@/hooks/useDwellTime"
 
-export default function ClientHooks({ children }: { children: React.ReactNode }) {
+export default function ClientHooks() {
   useScrollTracking()
   useDwellTime()
 
   return (
     <>
-      {children}
-
       {/* Register Service Worker */}
       <Script id="register-sw" strategy="afterInteractive">
         {`

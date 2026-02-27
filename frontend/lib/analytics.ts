@@ -82,7 +82,7 @@ function getBaseProperties(): Omit<BaseEventProperties, "session_id" | "timestam
   };
 }
 
-function getDeviceType(): "mobile" | "tablet" | "desktop" {
+export function getDeviceType(): "mobile" | "tablet" | "desktop" {
   if (typeof window === "undefined") return "desktop";
   const width = window.innerWidth;
   if (width < 768) return "mobile";
