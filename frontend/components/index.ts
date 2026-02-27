@@ -15,5 +15,7 @@ export { Card } from "./card";
 // Overlays
 export { Modal } from "./modal";
 export { BottomSheet } from "./bottom-sheet";
+export { InterventionModal } from "./intervention-modal";
+export type { InterventionAction } from "./intervention-modal";
 export { Toast, ToastContainer } from "./toast";
 export type { ToastItem } from "./toast";
