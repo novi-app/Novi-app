@@ -1,10 +1,12 @@
-from datetime import datetime, timezone, timedelta
+from datetime import datetime, timezone
 from uuid import uuid4
 from fastapi import APIRouter, HTTPException
 from app.utils.firebase_client import get_db
 from app.models.event import EventBatchRequest
+import logging
 
 router = APIRouter(prefix="/api/analytics", tags=["analytics"])
+logger = logging.getLogger(__name__)
 
 # In-memory deduplication cache
 _recent_event_ids: dict[str, int] = {}  # event_id -> timestamp_ms
@@ -52,38 +54,34 @@ async def log_analytics_events(request: EventBatchRequest):
         batch_session_id = request.session_id
         if not batch_session_id:
             for event in request.events:
-                event_session_id = event.get("session_id")
-                if event_session_id:
-                    batch_session_id = str(event_session_id)
+                if event.session_id:
+                    batch_session_id = str(event.session_id)
                     break
 
         if not batch_session_id:
             batch_session_id = _generate_session_id()
 
-        # Filter and prepare events
+        logger.info(f"Logging {len(request.events)} events for session {batch_session_id}")
+
+        # Process events
         write_batch = db.batch()
         logged_count = 0
         duplicate_count = 0
         
         for event in request.events:
-            event_type = event.get("event_type")
-            if not event_type:
-                raise HTTPException(
-                    status_code=400,
-                    detail="Each event must include 'event_type'.",
-                )
-            
-            # Check for event_id (required for deduplication)
-            event_id = event.get("event_id")
-            if event_id and _is_duplicate(str(event_id)):
+            # Check for duplicate using event_id
+            if event.event_id and _is_duplicate(str(event.event_id)):
                 duplicate_count += 1
-                continue  # Skip duplicate
+                continue
             
-            # Prepare payload
-            payload = dict(event)
-            payload["event_type"] = str(event_type)
-            payload["session_id"] = str(payload.get("session_id") or batch_session_id)
-            if "timestamp" not in payload:
+            # Convert Pydantic model to dict for Firestore
+            payload = event.model_dump(exclude_none=True)
+            
+            # Normalize fields
+            payload["event_type"] = str(event.event_type)
+            payload["session_id"] = str(event.session_id or batch_session_id)
+            
+            if "timestamp" not in payload or payload["timestamp"] is None:
                 payload["timestamp"] = _now_ms()
             
             # Write to Firestore
@@ -92,6 +90,8 @@ async def log_analytics_events(request: EventBatchRequest):
             logged_count += 1
 
         write_batch.commit()
+        
+        logger.info(f"Successfully logged {logged_count} events ({duplicate_count} duplicates skipped)")
         
         response = {
             "status": "logged",
@@ -107,4 +107,5 @@ async def log_analytics_events(request: EventBatchRequest):
     except HTTPException:
         raise
     except Exception as e:
+        logger.error(f"Failed to log events: {e}", exc_info=True)
         raise HTTPException(status_code=500, detail=f"Failed to log events: {e}")

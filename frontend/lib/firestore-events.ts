@@ -1,34 +1,11 @@
-import { getFirestore, collection, addDoc, Timestamp } from "firebase/firestore";
-import app from "./firebase";
-
-const db = getFirestore(app);
+import { v4 as uuidv4 } from "uuid";
 
 /**
- * Log behavioral event to Firestore for ML training and deep analysis
+ * Session management
  */
-export async function logBehavioralEvent(
-  eventType: string,
-  properties: Record<string, any>
-) {
-  try {
-    const eventDoc = {
-      event_type: eventType,
-      timestamp: Timestamp.now(),
-      session_id: getSessionId(),
-      user_id: getUserId(),
-      ...properties,
-    };
-
-    await addDoc(collection(db, "behavioral_events"), eventDoc);
-    
-    console.log(`Behavioral event logged: ${eventType}`);
-    
-  } catch (error) {
-    console.error("Failed to log behavioral event:", error);
-  }
-}
-
 function getSessionId(): string {
+  if (typeof window === "undefined") return "";
+  
   let sessionId = sessionStorage.getItem("novi_session_id");
   if (!sessionId) {
     sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
@@ -38,11 +15,12 @@ function getSessionId(): string {
 }
 
 function getUserId(): string | null {
+  if (typeof window === "undefined") return null;
   return localStorage.getItem("novi_user_id");
 }
 
 /**
- * Batch events and flush periodically to reduce write costs
+ * Event batcher - collects events and sends to backend API
  */
 class EventBatcher {
   private batch: any[] = [];
@@ -50,13 +28,16 @@ class EventBatcher {
   private timer: NodeJS.Timeout | null = null;
 
   add(eventType: string, properties: Record<string, any>) {
-    this.batch.push({
+    const event = {
+      event_id: uuidv4(), // Generate unique ID for deduplication
       event_type: eventType,
-      timestamp: Timestamp.now(),
+      timestamp: Date.now(),
       session_id: getSessionId(),
       user_id: getUserId(),
       ...properties,
-    });
+    };
+
+    this.batch.push(event);
 
     // Start flush timer if not already running
     if (!this.timer) {
@@ -72,21 +53,38 @@ class EventBatcher {
   async flush() {
     if (this.batch.length === 0) return;
 
-    try {
-      const eventsToFlush = [...this.batch];
-      this.batch = [];
+    const eventsToFlush = [...this.batch];
+    this.batch = [];
 
-      // Write all events in parallel
-      await Promise.all(
-        eventsToFlush.map(event =>
-          addDoc(collection(db, "behavioral_events"), event)
-        )
+    try {
+      // Send to backend API
+      const response = await fetch(
+        `${process.env.NEXT_PUBLIC_API_URL}/api/analytics/event`,
+        {
+          method: "POST",
+          headers: { "Content-Type": "application/json" },
+          body: JSON.stringify({
+            session_id: getSessionId(),
+            events: eventsToFlush,
+          }),
+        }
       );
 
-      console.log(`Flushed ${eventsToFlush.length} behavioral events`);
+      if (!response.ok) {
+        throw new Error(`Analytics API error: ${response.status}`);
+      }
+
+      const result = await response.json();
+      console.log(`Flushed ${result.count} behavioral events`);
+      
+      if (result.duplicates_skipped) {
+        console.log(`   (${result.duplicates_skipped} duplicates skipped)`);
+      }
       
     } catch (error) {
       console.error("Failed to flush events:", error);
+      // Put failed events back in batch for retry
+      this.batch.unshift(...eventsToFlush);
     } finally {
       if (this.timer) {
         clearTimeout(this.timer);
@@ -97,6 +95,16 @@ class EventBatcher {
 }
 
 export const eventBatcher = new EventBatcher();
+
+/**
+ * Log a single behavioral event (uses batching under the hood)
+ */
+export function logBehavioralEvent(
+  eventType: string,
+  properties: Record<string, any>
+) {
+  eventBatcher.add(eventType, properties);
+}
 
 // Flush on page unload
 if (typeof window !== "undefined") {
