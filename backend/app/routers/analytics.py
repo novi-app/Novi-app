@@ -13,7 +13,7 @@ def _now_ms() -> int:
     return int(datetime.now(tz=timezone.utc).timestamp() * 1000)
 
 def _generate_session_id() -> str:
-    return f"session_{_now_ms()}_{uuid4().hex[:8]}"
+    return f"session_{_now_ms()}_{uuid4().hex[:12]}"
 
 def _is_duplicate(event_id: str) -> bool:
     """Check if event_id was seen in last 60 seconds."""
