@@ -7,20 +7,26 @@ import { trackFreezeDetected } from "@/lib/analytics";
 interface UseFreezeDetectionOptions {
   enabled?: boolean;
   onFreeze?: (event: FreezeEvent) => void;
+  recommendations?: any[];
 }
 
 export function useFreezeDetection(options: UseFreezeDetectionOptions = {}) {
-  const { enabled = true, onFreeze } = options;
+  const { enabled = true, onFreeze, recommendations = [] } = options;
 
   const detectorRef = useRef<FreezeDetector | null>(null);
-
-  // Stabilize external callback without recreating detector
+  
   const onFreezeRef = useRef(onFreeze);
+  const recommendationsRef = useRef(recommendations);
 
   useEffect(() => {
     onFreezeRef.current = onFreeze;
   }, [onFreeze]);
 
+  useEffect(() => {
+    recommendationsRef.current = recommendations;
+  }, [recommendations]);
+
+  // Initialize detector (only when enabled changes)
   useEffect(() => {
     if (!enabled) return;
 
@@ -34,17 +40,38 @@ export function useFreezeDetection(options: UseFreezeDetectionOptions = {}) {
         cooldownMs: 60000,
       },
       (event) => {
-        // Analytics
-        trackFreezeDetected(event.rule, event.level, event.context);
+        // Get latest recommendations from ref
+        const currentRecs = recommendationsRef.current;
+        const suggestedVenue = currentRecs.length > 0 
+          ? currentRecs[0] 
+          : null;
 
-        // External handler
-        onFreezeRef.current?.(event);
+        // Enhance context with venue info
+        const enhancedContext = {
+          ...event.context,
+          selected_venue: suggestedVenue ? {
+            id: suggestedVenue.venue_id,
+            name: suggestedVenue.name,
+            category: suggestedVenue.category,
+          } : null,
+        };
+
+        // Track to analytics
+        trackFreezeDetected(event.rule, event.level, enhancedContext);
+
+        // Call custom handler with enhanced context
+        if (onFreezeRef.current) {
+          onFreezeRef.current({
+            ...event,
+            context: enhancedContext,
+          });
+        }
 
         // Dev-only logging
         if (process.env.NODE_ENV === "development") {
           console.log(
             `Freeze detected: ${event.rule} (${event.level})`,
-            event.context
+            enhancedContext
           );
         }
       }
@@ -52,6 +79,7 @@ export function useFreezeDetection(options: UseFreezeDetectionOptions = {}) {
 
     detectorRef.current = detector;
 
+    // Cleanup on unmount or when enabled changes
     return () => {
       detector.destroy();
       detectorRef.current = null;
