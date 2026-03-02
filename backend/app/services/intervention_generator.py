@@ -3,11 +3,13 @@ Intervention generation service.
 Selects a trigger-specific template and personalizes it with context.
 """
 import random
+import logging
 from collections.abc import Mapping
 from typing import Any
 
 from app.data.intervention_templates import DEFAULT_TRIGGER_TYPE, INTERVENTION_TEMPLATES
 
+logger = logging.getLogger(__name__)
 
 def _extract_venue_name(context: Mapping[str, Any] | None) -> str:
     """Resolve the best venue name from request context for message personalization."""
@@ -55,15 +57,18 @@ def generate_intervention(
         raise ValueError("user_id is required")
     if not trigger_type.strip():
         raise ValueError("trigger_type is required")
-
+    
+    logger.info(f"Generating intervention for user {user_id}, trigger: {trigger_type}")
+    
     template_trigger_type, template = _choose_template(trigger_type=trigger_type)
     venue_name = _extract_venue_name(context=context)
-
-    # Only one placeholder is expected, but we keep this map extensible.
+    
+    logger.debug(f"Selected template type: {template_trigger_type}, venue: {venue_name}")
+    
     placeholders = {"venue_name": venue_name}
     message = template["message_template"].format(**placeholders)
     suggested_action = template["suggested_action"].format(**placeholders)
-
+    
     return {
         "user_id": user_id,
         "trigger_type": template_trigger_type,
