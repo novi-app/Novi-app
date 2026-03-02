@@ -9,10 +9,6 @@ import os
 import sys
 from pathlib import Path
 from typing import Dict, List, Any, Tuple
-
-# Add parent directory to path so we can import from app/
-sys.path.insert(0, str(Path(__file__).parent.parent))
-
 from openai import OpenAI
 from config import settings
 from app.utils.firebase_client import initialize_firebase, get_db
@@ -80,7 +76,7 @@ def generate_venue_insights(venue_text: str) -> Tuple[int, str, str]:
                 {"role": "system", "content": system_prompt},
                 {"role": "user", "content": venue_text}
             ],
-            temperature=0.7
+            temperature=1.0
         )
         
         result = json.loads(response.choices[0].message.content)
