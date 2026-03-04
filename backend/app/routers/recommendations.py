@@ -34,7 +34,7 @@ async def get_venue_recommendations(request: RecommendationRequest):
             session_preferences=request.session_preferences,
             intent=request.intent,
             radius_km=50.0,
-            limit=3
+            limit=5
         )
         
         return {

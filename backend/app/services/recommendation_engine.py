@@ -57,7 +57,7 @@ def get_recommendations(
     session_preferences: Optional[dict] = None,
     intent: str = "any",
     radius_km: float = 50.0,
-    limit: int = 3
+    limit: int = 5
 ) -> List[Dict[str, Any]]:
     """
     Get top N venue recommendations based on semantic similarity and location.
@@ -119,8 +119,6 @@ def get_recommendations(
             continue
         
         # Filter by budget
-        # Allow price_level=0 (unknown/free) to pass through
-        # Otherwise filter venues above user's budget
         venue_price = venue.get("price_level", 0)
         if venue_price > user_budget and venue_price != 0:
             continue
