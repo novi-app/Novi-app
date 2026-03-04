@@ -125,13 +125,13 @@ export class FreezeDetector {
   }
 
   private checkScroll() {
-    if (this.totalScrollDistance < 500) return;
+    if (this.totalScrollDistance < 800) return;
 
     const directions = this.scrollEvents.map(e => e.direction);
     const ups = directions.filter(d => d === "up").length;
     const downs = directions.filter(d => d === "down").length;
 
-    if (ups >= 3 && downs >= 3) {
+    if (ups >= 12 && downs >= 12) {
       this.trigger("scroll_indecision", "GENTLE", {
         scroll_cycles: Math.min(ups, downs),
         total_scroll_distance: this.totalScrollDistance,

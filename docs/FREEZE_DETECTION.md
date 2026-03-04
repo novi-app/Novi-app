@@ -59,10 +59,10 @@ These rules are designed to capture different patterns of user behavior that ind
 ### 2.2 Scroll Indecision
 
 **Condition:**
-- User has scrolled down ≥ 3 times AND
-- User has scrolled up ≥ 3 times
+- User has scrolled down ≥ 4 times AND
+- User has scrolled up ≥ 4 times
 - Within 90-second window
-- Total scroll distance ≥ 500 pixels (excludes micro-adjustments)
+- Total scroll distance ≥ 800 pixels (excludes micro-adjustments)
 
 | Threshold        | Level  |
 |------------------|--------|
