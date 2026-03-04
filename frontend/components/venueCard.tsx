@@ -1,7 +1,7 @@
 "use client";
 
 import * as React from "react";
-import { Card } from "./";
+import { Card } from "./card";
 import { trackDirectionsClicked } from "@/lib/analytics";
 import { useViewportTracking } from "@/hooks/useViewportTracking";
 

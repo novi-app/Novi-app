@@ -2,7 +2,9 @@
 
 import * as React from "react";
 import { useRouter } from "next/navigation";
-import { Container, Stack, Button, Select, Row } from "@/components";
+import { Container, Stack, Row } from "@/components/layout";
+import { Button } from "@/components/button"
+import { Select } from "@/components/select"
 import { VenueCard, VenueCardSkeleton } from "@/components/venueCard";
 import { InterventionModal } from "@/components/interventionModal";
 import { VenueDetailModal } from "@/components/venueDetailModal";

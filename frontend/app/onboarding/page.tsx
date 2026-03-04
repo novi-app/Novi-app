@@ -3,8 +3,8 @@
 import * as React from "react";
 import { useRouter } from "next/navigation";
 import { motion, AnimatePresence } from "framer-motion";
-import { Logo } from "../../components/logo";
-import { Button } from "../../components";
+import { Logo } from "@/components/logo";
+import { Button } from "@/components/button";
 import { trackOnboardingStarted, trackOnboardingStepCompleted, trackOnboardingCompleted, identifyUser, getDeviceType } from "@/lib/analytics";
 
 
