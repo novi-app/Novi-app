@@ -17,7 +17,6 @@ interface SelectGroupProps extends React.OptgroupHTMLAttributes<HTMLOptGroupElem
   children: React.ReactNode;
 }
 
-// Subcomponent types attached to Select
 interface SelectComponent
   extends React.ForwardRefExoticComponent<
     SelectProps & React.RefAttributes<HTMLSelectElement>
@@ -44,17 +43,6 @@ const ChevronIcon = () => (
   </svg>
 );
 
-/**
- * Reusable Select with label, error, size, Option, and Group subcomponents.
- *
- * Usage:
- *   <Select label="Country" size="md">
- *     <Select.Option value="">Choose one…</Select.Option>
- *     <Select.Group label="Europe">
- *       <Select.Option value="fr">France</Select.Option>
- *     </Select.Group>
- *   </Select>
- */
 export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
   ({ label, size = "md", helperText, error, children, id, className = "", ...props }, ref) => {
     const generatedId = React.useId();
@@ -65,7 +53,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
     return (
       <div className="flex flex-col w-full gap-1">
         {label && (
-          <label htmlFor={selectId} className="text-sm font-medium text-neutral-700">
+          <label htmlFor={selectId} className="text-sm font-medium text-secondary">
             {label}
           </label>
         )}
@@ -77,7 +65,7 @@ export const Select = React.forwardRef<HTMLSelectElement, SelectProps>(
             aria-invalid={hasError}
             aria-describedby={helperText || error ? helperId : undefined}
             className={`
-              w-full appearance-none rounded-pill border bg-white text-neutral-900
+              w-full appearance-none rounded-pill border bg-white text-neutral-600
               focus:outline-none focus:ring-2
               disabled:opacity-50 disabled:cursor-not-allowed
               transition-colors duration-150

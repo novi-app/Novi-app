@@ -1,12 +1,11 @@
 import type { Metadata, Viewport } from "next"
-import { Fraunces, DM_Sans } from 'next/font/google'
+import { Cormorant_Garamond, DM_Sans } from 'next/font/google'
 import ClientHooks from "./ClientHooks"
 import "./globals.css"
 
-const fraunces = Fraunces({ 
+const cormorantGaramond = Cormorant_Garamond({ 
   subsets: ['latin'], 
-  variable: '--font-fraunces',
-  axes: ['opsz'] 
+  variable: '--font-cormorant-garamond',
 })
 const dmSans = DM_Sans({ 
   subsets: ['latin'], 
@@ -28,13 +27,13 @@ export const viewport: Viewport = {
   width: "device-width",
   initialScale: 1,
   maximumScale: 1,
-  themeColor: "#667EEA",
+  themeColor: "#0B4F4A",
 };
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode; }>) {
   return (
     <html lang="en">
-      <body className={`${fraunces.variable} ${dmSans.variable} antialiased`}>
+      <body className={`${cormorantGaramond.variable} ${dmSans.variable} antialiased`}>
         {children}
         <ClientHooks/>
       </body>

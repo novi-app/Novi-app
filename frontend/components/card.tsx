@@ -12,9 +12,9 @@ type CardSubComponents = {
 };
 
 const variantStyles = {
-  default: "bg-white shadow-xs border border-neutral-100",
-  elevated: "bg-white shadow-card",
-  float: "bg-white shadow-float",
+  default:  "bg-white shadow-xs border border-secondary/[0.06]",
+  elevated: "bg-white shadow-md",
+  float:    "bg-white shadow-float",
 };
 
 const paddingStyles = {
@@ -24,30 +24,23 @@ const paddingStyles = {
   lg: "p-6",
 };
 
-/**
- * Card container with semantic subcomponents.
- *
- * Usage:
- *   <Card variant="elevated">
- *     <Card.Title>Destination</Card.Title>
- *     <Card.Content>Your content here.</Card.Content>
- *     <Card.Footer><Button>Book</Button></Card.Footer>
- *   </Card>
- */
-export const Card: React.FC<CardProps> & CardSubComponents = ({
-  children,
-  variant = "default",
-  padding = "md",
-  className = "",
-  ...props
-}) => (
-  <div
-    className={`rounded-2xl ${variantStyles[variant]} ${paddingStyles[padding]} ${className}`}
-    {...props}
-  >
-    {children}
-  </div>
+
+const CardComponent = React.forwardRef<HTMLDivElement, CardProps>(
+  ({ children, variant = "default", padding = "md", className = "", ...props }, ref) => (
+    <div
+      ref={ref}
+      className={`rounded-2xl ${variantStyles[variant]} ${paddingStyles[padding]} ${className}`}
+      {...props}
+    >
+      {children}
+    </div>
+  )
 );
+
+CardComponent.displayName = "Card";
+
+// Type cast to add subcomponents
+export const Card = CardComponent as typeof CardComponent & CardSubComponents;
 
 Card.Title = ({ children, className = "" }) => (
   <h3 className={`text-lg font-semibold text-neutral-900 ${className}`}>
