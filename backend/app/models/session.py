@@ -7,8 +7,7 @@ from typing import List, Optional
 
 class SessionPreferences(BaseModel):
     vibe: List[str] = []
-    intent: str = "food"
+    activity: str = "food"
     mood: str = "relaxed"
-    timing: str = "now"
     budget: Optional[int] = Field(default=None, ge=1, le=3)
     

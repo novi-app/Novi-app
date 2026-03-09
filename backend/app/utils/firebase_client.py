@@ -103,9 +103,9 @@ def save_user(user_id: str, data: dict[str, Any]) -> None:
     db = get_db()
     db.collection("users").document(user_id).set(data, merge=True)
 
-def get_venues(limit: int = 50, category: Optional[str] = None) -> list[dict[str, Any]]:
+def get_venues(limit: int = 50, activity: Optional[str] = None) -> list[dict[str, Any]]:
     """
-    Fetch venues, optionally filtered by category.
+    Fetch venues, optionally filtered by activity.
     Returns list of dicts with 'doc_id' included.
     """
     if limit <= 0:
@@ -114,8 +114,8 @@ def get_venues(limit: int = 50, category: Optional[str] = None) -> list[dict[str
     db = get_db()
     query = db.collection("venues")
     
-    if category:
-        query = query.where("category", "==", category)
+    if activity:
+        query = query.where("activity", "==", activity)
     
     venues: list[dict[str, Any]] = []
     for snap in query.limit(limit).stream():

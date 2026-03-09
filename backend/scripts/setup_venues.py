@@ -100,6 +100,35 @@ def get_neighborhoods_for_category(category: str) -> list:
     else:
         return neighborhoods["moderate"] + neighborhoods["general"]
 
+def get_activity_for_category(category: str) -> str:
+    """Map a specific venue category to its broader activity type."""
+    activity_map = {
+        # FOOD
+        "budget restaurant": "food",
+        "restaurant": "food",
+        "budget cafe": "food",
+        "cafe": "food",
+        # DRINKS
+        "bar": "drinks",
+        "izakaya": "drinks",
+        # EXPLORE
+        "museum": "explore",
+        "shinto shrine": "explore",
+        "buddhist temple": "explore",
+        "bookstore": "explore",
+        # UNWIND
+        "park": "unwind",
+        "onsen": "unwind",
+        "spa": "unwind",
+        # SHOPPING
+        "shopping mall": "shopping",
+        "shopping street": "shopping",
+        # SIGHTSEEING
+        "observation deck": "sightseeing",
+        "amusement park": "sightseeing",
+    }
+
+    return activity_map.get(category, "explore")
 
 def collect_tokyo_venues():
     """Fetch 500+ diverse venues optimized for solo travelers."""
@@ -126,7 +155,7 @@ def collect_tokyo_venues():
         "budget cafe": 30,
         "cafe": 70,
         
-        # SOCIAL (Solo-friendly drinking/dining)
+        # DRINKS (Solo-friendly drinking/dining)
         "bar": 40,
         "izakaya": 30,
         
@@ -242,6 +271,7 @@ def collect_tokyo_venues():
                             venue = {
                                 "place_id": place_id,
                                 "name": place.get("displayName", {}).get("text", "Unknown"),
+                                "activity": get_activity_for_category(category),
                                 "category": category.replace("budget ", ""),  # Normalize category
                                 "location": place.get("location", {}),
                                 "address": place.get("formattedAddress", "Unknown"),
