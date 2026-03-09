@@ -55,7 +55,7 @@ def get_recommendations(
     user_lat: float,
     user_lon: float,
     session_preferences: Optional[dict] = None,
-    intent: str = "any",
+    activity: str = "any",
     radius_km: float = 50.0,
     limit: int = 5
 ) -> List[Dict[str, Any]]:
@@ -66,8 +66,8 @@ def get_recommendations(
         user_id: User's ID (to load their embedding)
         user_lat: User's latitude
         user_lon: User's longitude
-        session_preferences: Optional live session data (vibe, intent, mood, budget override)
-        intent: Category filter (e.g., "restaurant", "cafe")
+        session_preferences: Optional live session data (vibe, activity, mood, budget)
+        activity: Category filter (e.g., "restaurant", "cafe")
         radius_km: Maximum distance from user location
         limit: Number of recommendations to return
         
@@ -99,9 +99,9 @@ def get_recommendations(
     else:
         user_embedding = user_data["embedding"]
 
-    # 4. Load venues (with optional category filter)
-    category = None if intent == "any" else intent
-    all_venues = get_venues(limit=100, category=category)
+    # 4. Load venues (with optional activity filter)
+    activity = None if activity == "any" else activity
+    all_venues = get_venues(limit=150, activity=activity)
     
     scored_venues = []
 
@@ -138,6 +138,7 @@ def get_recommendations(
         result = {
             "venue_id": venue.get("doc_id") or venue.get("place_id"),
             "name": venue.get("name"),
+            "activity": venue.get("activity"),
             "category": venue.get("category"),
             "location": {
                 "lat": venue_lat,
