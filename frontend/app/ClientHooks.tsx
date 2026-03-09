@@ -28,7 +28,7 @@ export default function ClientHooks() {
                 // Step 3: Register new service worker with cache-busting timestamp
                 const timestamp = Date.now();
                 const registration = await navigator.serviceWorker.register(
-                  '/sw.js?v=' + timestamp,
+                  '/service-worker.js?v=' + timestamp,
                   { updateViaCache: 'none' }
                 );
 
