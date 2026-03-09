@@ -1,41 +1,52 @@
-"use client"
-
-import Script from "next/script"
-import { useScrollTracking } from "@/hooks/useScrollTracking"
-import { useDwellTime } from "@/hooks/useDwellTime"
+"use client";
+import Script from "next/script";
+import { useScrollTracking } from "@/hooks/useScrollTracking";
+import { useDwellTime } from "@/hooks/useDwellTime";
 
 export default function ClientHooks() {
-  useScrollTracking()
-  useDwellTime()
+  useScrollTracking();
+  useDwellTime();
 
   return (
     <>
-      {/* Register Service Worker */}
+      {/* Register Service Worker with cache-busting */}
       <Script id="register-sw" strategy="afterInteractive">
         {`
           if ('serviceWorker' in navigator) {
             window.addEventListener('load', async function() {
               try {
-                // Clear legacy Novi caches that may contain stale route HTML.
+                // Step 1: Unregister ALL old service workers
+                const registrations = await navigator.serviceWorker.getRegistrations();
+                await Promise.all(registrations.map(reg => reg.unregister()));
+
+                // Step 2: Clear all caches
                 if ('caches' in window) {
-                  const keys = await caches.keys();
-                  await Promise.all(
-                    keys
-                      .filter((key) => key.startsWith('novi-') && key !== 'novi-static-v2')
-                      .map((key) => caches.delete(key))
-                  );
+                  const cacheNames = await caches.keys();
+                  await Promise.all(cacheNames.map(name => caches.delete(name)));
                 }
 
-                const registration = await navigator.serviceWorker.register('/sw.js', {
-                  updateViaCache: 'none',
+                // Step 3: Register new service worker with cache-busting timestamp
+                const timestamp = Date.now();
+                const registration = await navigator.serviceWorker.register(
+                  '/sw.js?v=' + timestamp,
+                  { updateViaCache: 'none' }
+                );
+
+                // Step 4: Handle updates - reload page when new worker takes control
+                let refreshing = false;
+                navigator.serviceWorker.addEventListener('controllerchange', () => {
+                  if (!refreshing) {
+                    refreshing = true;
+                    window.location.reload();
+                  }
                 });
 
-                await registration.update();
-
+                // Step 5: If there's a waiting worker, activate it immediately
                 if (registration.waiting) {
                   registration.waiting.postMessage({ type: 'SKIP_WAITING' });
                 }
 
+                // Step 6: Listen for new workers becoming available
                 registration.addEventListener('updatefound', () => {
                   const newWorker = registration.installing;
                   if (!newWorker) return;
@@ -47,12 +58,12 @@ export default function ClientHooks() {
                   });
                 });
               } catch (error) {
-                console.error('Service worker registration failed:', error);
+                console.error('Service worker error:', error);
               }
             });
           }
         `}
       </Script>
     </>
-  )
+  );
 }
