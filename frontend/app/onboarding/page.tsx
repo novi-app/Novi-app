@@ -7,7 +7,6 @@ import { Logo } from "@/components/logo";
 import { Button } from "@/components/button";
 import { trackOnboardingStarted, trackOnboardingStepCompleted, trackOnboardingCompleted, identifyUser, getDeviceType } from "@/lib/analytics";
 
-
 interface OnboardingData {
   dietary:  string[];
   budget:   number;
