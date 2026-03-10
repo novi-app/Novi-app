@@ -1,4 +1,3 @@
-// Service worker v3 - Aggressive cache clearing, never cache HTML
 const CACHE_NAME = "novi-static-v3";
 const CACHE_PREFIX = "novi-";
 
@@ -47,7 +46,7 @@ self.addEventListener("fetch", (event) => {
     sameOrigin &&
     (url.pathname.startsWith("/_next/static/") ||
       /\.(js|css|png|jpg|jpeg|svg|gif|webp|ico|woff2?)$/i.test(url.pathname)) &&
-    url.pathname !== "/service-worker.js"; // Never cache the service worker itself
+    url.pathname !== "/service-worker.js";
 
   if (!isStaticAsset) {
     return;
