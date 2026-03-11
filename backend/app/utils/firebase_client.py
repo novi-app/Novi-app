@@ -10,6 +10,8 @@ import firebase_admin
 from firebase_admin import credentials, firestore
 from google.auth.exceptions import DefaultCredentialsError
 
+import pygeohash as pgh
+
 # Cached Firestore client (initialized at startup)
 _db: Optional[firestore.Client] = None
 
@@ -103,7 +105,14 @@ def save_user(user_id: str, data: dict[str, Any]) -> None:
     db = get_db()
     db.collection("users").document(user_id).set(data, merge=True)
 
-def get_venues(limit: int = 50, activity: Optional[str] = None) -> list[dict[str, Any]]:
+def get_venues(
+        lat: Optional[float] = None, # User's lat
+        lon: Optional[float] = None, # User's lon
+        activity: Optional[str] = None,
+        radius_km: int = 50, # Max radius of search
+        budget: int = 3,
+        limit: int = 100
+) -> list[dict[str, Any]]:
     """
     Fetch venues, optionally filtered by activity.
     Returns list of dicts with 'doc_id' included.
@@ -113,9 +122,31 @@ def get_venues(limit: int = 50, activity: Optional[str] = None) -> list[dict[str
     
     db = get_db()
     query = db.collection("venues")
-    
+
+    if lat and lon:
+        # Determine precision based on radius
+        if radius_km <= 5:
+            precision = 6      # ~1km cells
+        elif radius_km <= 20:
+            precision = 5      # ~5km cells
+        else:
+            precision = 4      # ~40km cells
+
+        center_hash = pgh.encode(lat, lon, precision=precision)
+        
+        # Get the hash prefix range for querying
+        # All geohashes in the area share this prefix
+        hash_prefix = center_hash[:precision]
+        
+        # Firestore range query on geohash prefix
+        query = query.where("geohash", ">=", hash_prefix) \
+                .where("geohash", "<",  hash_prefix + "\uf8ff")  # Unicode upper bound trick
+
     if activity:
         query = query.where("activity", "==", activity)
+
+    if budget:
+        query = query.where("price_level", "<=", budget)
     
     venues: list[dict[str, Any]] = []
     for snap in query.limit(limit).stream():

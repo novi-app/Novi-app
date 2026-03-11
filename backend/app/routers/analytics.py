@@ -1,6 +1,7 @@
 from datetime import datetime, timezone
 from uuid import uuid4
-from fastapi import APIRouter, HTTPException
+from fastapi import APIRouter, HTTPException, BackgroundTasks
+from app.services.feedback_loop_service import apply_embedding_nudge, NUDGE_WEIGHTS
 from app.utils.firebase_client import get_db
 from app.models.event import EventBatchRequest
 import logging
@@ -39,13 +40,14 @@ def _is_duplicate(event_id: str) -> bool:
 
 
 @router.post("/event")
-async def log_analytics_events(request: EventBatchRequest):
+async def log_analytics_events(request: EventBatchRequest, background_tasks: BackgroundTasks):
     """
-    Save a batch of behavioral events to Firestore.
+    Save a batch of behavioral events to Firestore and asynchronously nudge user embeddings.
     
     - Target collection: behavioral_events
     - Ensures each event has session_id and timestamp
     - Deduplicates events within 60-second window
+    - Nudges the user's embedding towards interacted venues
     """
     try:
         db = get_db()
@@ -83,6 +85,16 @@ async def log_analytics_events(request: EventBatchRequest):
             
             if "timestamp" not in payload or payload["timestamp"] is None:
                 payload["timestamp"] = _now_ms()
+
+            # --- Trigger Background Nudge if applicable ---
+            if event.event_type in NUDGE_WEIGHTS and event.user_id and payload.get("venue_id"):
+                background_tasks.add_task(
+                    apply_embedding_nudge, 
+                    user_id=event.user_id, 
+                    venue_id=payload["venue_id"], 
+                    event_type=event.event_type
+                )
+            # ---------------------------------------------------
             
             # Write to Firestore
             event_ref = db.collection("behavioral_events").document()

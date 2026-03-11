@@ -12,7 +12,7 @@ async def onboard_user_endpoint(request: OnboardingRequest):
     """
     try:
         # Calling the service layer to save to the database
-        result = onboard_user(request.preferences)
+        result = onboard_user(request.username, request.preferences)
         return result
     
     except ValueError as ve:

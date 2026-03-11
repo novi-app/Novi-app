@@ -23,7 +23,7 @@ async def get_venue_recommendations(request: RecommendationRequest):
         "activity": "food",
         "session_preferences": {  // Optional
             "vibe": ["lively"],
-            "mood": "spontaneous",
+            "mood": ["spontaneous"],
             "budget": 3  // Override onboarding budget
         }
     }

@@ -19,7 +19,7 @@ client = OpenAI(api_key=settings.OPENAI_API_KEY)
 def generate_embedding(venue_text: str) -> List[float]:
     try:
         response = client.embeddings.create(
-            model="text-embedding-ada-002",
+            model="text-embedding-3-small",
             input=venue_text
         )
         return response.data[0].embedding
@@ -28,7 +28,6 @@ def generate_embedding(venue_text: str) -> List[float]:
 
 def create_venue_text(venue: Dict[str, Any]) -> str:
     parts = [
-        venue.get("name", ""),
         venue.get("category", ""),
         venue.get("description", ""),
     ]

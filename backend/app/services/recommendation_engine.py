@@ -3,7 +3,9 @@ Recommendation engine - core matching logic.
 Computes similarity between user and venue embeddings.
 """
 import math
+import zoneinfo
 import numpy as np
+from datetime import datetime
 from typing import Dict, Any, List, Optional
 from app.utils.firebase_client import get_user, get_venues
 from app.services.embedding_service import generate_session_embedding
@@ -49,6 +51,68 @@ def haversine_distance(
 
     return R * c
 
+def is_open_for_next_hour(periods: list) -> bool:
+    """
+    Checks if a venue is open right now AND remains open for at least 1 more hour.
+    Calculated using Tokyo Standard Time (JST).
+    """
+    if not periods:
+        # If no hours are provided, assume it's open
+        return True 
+
+    # 1. Get current time in Tokyo
+    tokyo_tz = zoneinfo.ZoneInfo("Asia/Tokyo")
+    now = datetime.now(tokyo_tz)
+    
+    # Convert Python's weekday (1=Mon, 7=Sun) to Google's format (0=Sun, 1=Mon... 6=Sat)
+    current_day = now.isoweekday() % 7 
+    current_time_minutes = (now.hour * 60) + now.minute
+    
+    # 2. Loop through the venue's open periods
+    for period in periods:
+        open_data = period.get("open", {})
+        close_data = period.get("close", {})
+        
+        # Check if it's open 24/7 (Google represents this as day 0, time 00:00 with no close)
+        if open_data.get("day") == 0 and open_data.get("hour") == 0 and not close_data:
+            return True
+            
+        open_day = open_data.get("day")
+        close_day = close_data.get("day")
+        
+        open_minutes = (open_data.get("hour", 0) * 60) + open_data.get("minute", 0)
+        close_minutes = (close_data.get("hour", 0) * 60) + close_data.get("minute", 0)
+
+        # Case A: Standard same-day hours (e.g., 09:00 to 17:00)
+        if open_day == current_day and open_day == close_day:
+            if open_minutes <= current_time_minutes:
+                # Is the close time at least 60 minutes away?
+                if (close_minutes - current_time_minutes) >= 60:
+                    return True
+
+        # Case B: Late-night hours crossing midnight (Checking BEFORE midnight)
+        elif open_day == current_day and close_day == (current_day + 1) % 7:
+            if current_time_minutes >= open_minutes:
+                # Calculate time until close tomorrow
+                minutes_until_close = ((24 * 60) - current_time_minutes) + close_minutes
+                if minutes_until_close >= 60:
+                    return True
+                    
+        # Case C: Late-night hours crossing midnight (Checking AFTER midnight)
+        elif close_day == current_day and open_day == (current_day - 1) % 7:
+            if current_time_minutes < close_minutes:
+                # Is the close time at least 60 minutes away?
+                if (close_minutes - current_time_minutes) >= 60:
+                    return True
+
+    return False
+
+def compute_composite_score(similarity: float, distance_km: float, radius_km: float) -> float:
+    # Normalize distance to [0, 1] where 0 = far, 1 = nearby
+    proximity_score = 1.0 - (distance_km / radius_km)
+    
+    # Weighted blend: 80% semantic match, 20% proximity
+    return (0.8 * similarity) + (0.2 * proximity_score)
 
 def get_recommendations(
     user_id: str,
@@ -67,7 +131,7 @@ def get_recommendations(
         user_lat: User's latitude
         user_lon: User's longitude
         session_preferences: Optional live session data (vibe, activity, mood, budget)
-        activity: Category filter (e.g., "restaurant", "cafe")
+        activity: Activity filter (e.g., "food", "drinks")
         radius_km: Maximum distance from user location
         limit: Number of recommendations to return
         
@@ -81,59 +145,60 @@ def get_recommendations(
     user_data = get_user(user_id)
     if not user_data or "embedding" not in user_data:
         raise ValueError(f"User {user_id} not found or missing embedding")
-    
-    # 2. Determine budget limit
-    user_budget = user_data.get("preferences", {}).get("budget", 2)  # Default moderate
-    if session_preferences and session_preferences.get("budget"):
-        user_budget = session_preferences["budget"]  # Session override
-    
-    # 3. Generate embedding (with session weighting if provided)
+        
+    # 2. Generate embedding (with session weighting if provided)
     if session_preferences:
-        onboarding_embedding = user_data["embedding"]
+        onboarding_preferences = user_data["preferences"]
         user_embedding = generate_session_embedding(
-            onboarding_embedding,
+            onboarding_preferences,
             session_preferences,
-            onboarding_weight=0.4,
-            session_weight=0.6
         )
+
+        budget_val = session_preferences.get("budget")
+        if budget_val is not None:
+            # User's budget -- Keep it 0 to strictly search for free options.
+            # Otherwise, increase by 1 for better seaching results
+            budget = 0 if budget_val == 0 else budget_val + 1
+
     else:
         user_embedding = user_data["embedding"]
+        budget = 3
 
-    # 4. Load venues (with optional activity filter)
+    # 3. Load venues (with optional activity filter)
     activity = None if activity == "any" else activity
-    all_venues = get_venues(limit=150, activity=activity)
+    all_personalized_venues = get_venues(user_lat, user_lon, activity, radius_km, budget)
     
     scored_venues = []
 
-    # 5. Filter by distance, budget, and compute similarity
-    for venue in all_venues:
+    # 4. Filter by distance, budget, and compute similarity
+    for venue in all_personalized_venues:
         # Check location exists
         venue_lat = venue.get("location", {}).get("latitude")
         venue_lon = venue.get("location", {}).get("longitude")
         if venue_lat is None or venue_lon is None:
             continue
+
+        # --- Filter by Time (Closing soon) ---
+        opening_hours_data = venue.get("regular_opening_hours", {})
+        periods = opening_hours_data.get("periods", []) if isinstance(opening_hours_data, dict) else opening_hours_data
         
-        # Filter by distance
+        if not is_open_for_next_hour(periods):
+            continue
+        # -------------------------------------
+        
+        # --- Filter by distance ---
         distance = haversine_distance(user_lat, user_lon, venue_lat, venue_lon)
         if distance > radius_km:
             continue
-        
-        # Filter by budget
-        venue_price = venue.get("price_level", 0)
-        if venue_price > user_budget and venue_price != 0:
-            continue
-        
-        # Check embedding exists
+        # --------------------------
+                
+        # --- Compute similarity ---
         venue_embedding = venue.get("embedding")
         if not venue_embedding:
             continue
         
-        # Compute similarity
         similarity = cosine_similarity(user_embedding, venue_embedding)
-        
-        # Combine with solo score (60% similarity, 40% solo score)
-        solo_score = venue.get("solo_score", 50) / 100.0  # Normalize to 0-1
-        combined_score = (0.6 * similarity) + (0.4 * solo_score)
+        # --------------------------
         
         result = {
             "venue_id": venue.get("doc_id") or venue.get("place_id"),
@@ -147,16 +212,18 @@ def get_recommendations(
             "address": venue.get("address"),
             "distance_km": round(distance, 2),
             "rating": venue.get("rating"),
-            "price_level": venue_price,
+            "price_level": venue.get("price_level"),
             "similarity_score": round(similarity, 4),
             "solo_score": venue.get("solo_score"),
             "solo_reason": venue.get("solo_reason"),
             "pro_tip": venue.get("pro_tip"),
-            "combined_score": round(combined_score, 4),
         }
         scored_venues.append(result)
 
-    # 6. Sort by combined score and return top N
-    scored_venues.sort(key=lambda x: x["combined_score"], reverse=True)
+    # 5. Sort venues by similarity score and distance
+    scored_venues.sort(
+        key=lambda venue: compute_composite_score(venue["similarity_score"], venue["distance_km"], radius_km),
+        reverse=True
+    )
     
     return scored_venues[:limit]

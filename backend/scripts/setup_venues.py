@@ -9,6 +9,7 @@ from pathlib import Path
 from firebase_admin import storage
 from config import settings
 from app.utils.firebase_client import initialize_firebase, get_db
+import pygeohash as pgh
 
 
 def upload_photo_to_storage(photo_url: str, venue_id: str, photo_index: int = 0) -> str:
@@ -143,7 +144,7 @@ def collect_tokyo_venues():
         "X-Goog-FieldMask": (
             "places.id,places.displayName,places.location,"
             "places.formattedAddress,places.rating,places.priceLevel,"
-            "places.reviewSummary,places.photos,nextPageToken"
+            "places.reviewSummary,places.regularOpeningHours,places.photos,nextPageToken"
         )
     }
     
@@ -267,6 +268,12 @@ def collect_tokyo_venues():
                                         
                                         time.sleep(0.5)  # Rate limit protection
                             
+                            # Calculate geohash for nearby locations filtering
+                            lat = place.get("location", {}).get("latitude")
+                            lon = place.get("location", {}).get("longitude")
+                            if lat and lon:
+                                geohash = pgh.encode(lat, lon, precision=6)
+
                             # Structure venue data
                             venue = {
                                 "place_id": place_id,
@@ -275,9 +282,11 @@ def collect_tokyo_venues():
                                 "category": category.replace("budget ", ""),  # Normalize category
                                 "location": place.get("location", {}),
                                 "address": place.get("formattedAddress", "Unknown"),
+                                "geohash": geohash,
                                 "rating": place.get("rating", 0.0),
                                 "price_level": price_level,
                                 "description": description,
+                                "regular_opening_hours": place.get("regularOpeningHours"),
                                 "photos": photo_urls,
                             }
                             

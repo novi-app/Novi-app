@@ -31,3 +31,4 @@ passlib[bcrypt]==1.7.4
 
 # Math
 numpy==2.4.2
+pygeohash==3.2.2

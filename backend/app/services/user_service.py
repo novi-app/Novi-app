@@ -11,7 +11,7 @@ def generate_user_id() -> str:
     """Generate user ID."""
     return f"user_{uuid.uuid4().hex[:12]}"
 
-def onboard_user(preferences: UserPreferences) -> dict:
+def onboard_user(username, preferences: UserPreferences) -> dict:
     """
     Process user onboarding and save to Firestore.
     
@@ -33,6 +33,7 @@ def onboard_user(preferences: UserPreferences) -> dict:
     # Prepare the data payload for Firestore
     user_data = {
         "user_id": user_id,
+        "name": username,
         "preferences": preferences_dict,
         "embedding": user_embedding,
         "created_at": datetime.utcnow().isoformat(),
@@ -46,5 +47,6 @@ def onboard_user(preferences: UserPreferences) -> dict:
     # Return the new user ID and status
     return {
         "user_id": user_id,
+        "username": username,
         "status": "success"
     }
