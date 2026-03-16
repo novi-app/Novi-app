@@ -33,7 +33,7 @@ export default function NamePage() {
   const handleNext = () => {
     if (!name.trim()) return;
     localStorage.setItem(LS_USER_NAME, name.trim());
-    trackOnboardingStepCompleted(1, "NAME", name.trim(), 0);
+    // trackOnboardingStepCompleted(1, "NAME", name.trim(), 0);
     router.push("/onboarding/activity");
   };
 
