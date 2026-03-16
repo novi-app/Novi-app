@@ -129,7 +129,7 @@ export default function RecommendationsPage() {
   const [error, setError] = React.useState<string | null>(null);
   const [selectedIntent, setSelectedIntent] = React.useState("any");
 
-  const userLocation = { lat: 35.6762, lng: 139.6503 };
+  const userLocation = { lat: 35.6595, lng: 139.7004 }; // Shibuya, Tokyo
 
   const [filterChangeCount, setFilterChangeCount] = React.useState(0);
   const [previousFilter, setPreviousFilter] = React.useState("any");

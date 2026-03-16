@@ -1,15 +1,13 @@
 import { getAnalytics, logEvent, isSupported } from "firebase/analytics";
 import mixpanel from "mixpanel-browser";
-import type { EventName, EventProperties, BaseEventProperties, FreezeRuleType, InterventionLevel } from "./events";
+import type { StepName, EventName, EventProperties, BaseEventProperties, FreezeRuleType, InterventionLevel } from "./events";
 
 
 let firebaseAnalytics: ReturnType<typeof getAnalytics> | null = null;
 let mixpanelInitialized = false;
 let sessionId: string | null = null;
 
-/**
- * Initialize Firebase Analytics
- */
+
 async function initFirebase() {
   if (typeof window === "undefined") return null;
   
@@ -152,7 +150,7 @@ export const trackOnboardingStarted = () =>
 
 export const trackOnboardingStepCompleted = (
   stepNumber: number,
-  stepName: "dietary" | "budget" | "activity",
+  stepName: StepName,
   selections: string[] | number,
   timeOnStepSeconds: number
 ) => 

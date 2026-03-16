@@ -3,7 +3,7 @@ import path from 'path';
 
 const nextConfig: NextConfig = {
   reactStrictMode: true,
-  
+
   images: {
     remotePatterns: [
       {
@@ -15,6 +15,14 @@ const nextConfig: NextConfig = {
 
   turbopack: {
     root: path.resolve(__dirname, '../'),
+  },
+
+  webpack(config) {
+    config.module.rules.push({
+      test: /\.md$/,
+      type: "asset/source",
+    });
+    return config;
   },
 
   async headers() {

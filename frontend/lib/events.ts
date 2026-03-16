@@ -41,6 +41,8 @@ export type FreezeRuleType =
 
 export type InterventionLevel = "GENTLE" | "MODERATE" | "URGENT";
 
+export type StepName =  "NAME" | "ACTIVITY" | "DIETARY" | "BUDGET"
+
 export interface BaseEventProperties {
   session_id: string;
   user_id?: string;
@@ -53,7 +55,7 @@ export interface BaseEventProperties {
 
 export interface OnboardingStepCompletedProperties extends BaseEventProperties {
   step_number: number;
-  step_name: "dietary" | "budget" | "activity";
+  step_name: StepName;
   selections: string[] | number; // Dietary/activity = array, budget = number
   time_on_step_seconds: number;
 }
@@ -67,7 +69,7 @@ export interface OnboardingCompletedProperties extends BaseEventProperties {
 
 export interface OnboardingAbandonedProperties extends BaseEventProperties {
   step_abandoned: number;
-  step_name: "dietary" | "budget" | "activity";
+  step_name: StepName;
   time_before_abandon_seconds: number;
 }
 

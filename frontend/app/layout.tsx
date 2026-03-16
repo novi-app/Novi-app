@@ -1,15 +1,15 @@
 import type { Metadata, Viewport } from "next"
-import { Cormorant_Garamond, DM_Sans } from 'next/font/google'
+import { Sora, Lora } from 'next/font/google'
 import ClientHooks from "./ClientHooks"
 import "./globals.css"
 
-const cormorantGaramond = Cormorant_Garamond({ 
+const sora = Sora({ 
   subsets: ['latin'], 
-  variable: '--font-cormorant-garamond',
+  variable: '--font-sora',
 })
-const dmSans = DM_Sans({ 
+const lora = Lora({ 
   subsets: ['latin'], 
-  variable: '--font-dm-sans' 
+  variable: '--font-lora' 
 })
 
 export const metadata: Metadata = {
@@ -33,7 +33,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode; }>) {
   return (
     <html lang="en">
-      <body className={`${cormorantGaramond.variable} ${dmSans.variable} antialiased`}>
+      <body className={`${sora.variable} ${lora.variable} antialiased`}>
         {children}
         <ClientHooks/>
       </body>
