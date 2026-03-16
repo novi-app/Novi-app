@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from config import settings
-from app.routers import analytics, interventions, recommendations, user
+from app.routers import analytics, interventions, recommendations, user, venues
 
 app = FastAPI(
     title="Novi API",
@@ -17,7 +17,6 @@ app.add_middleware(
     allow_headers=["*"],
 )
 
-# Startup event
 @app.on_event("startup")
 def startup_event():
     from app.utils.firebase_client import initialize_firebase
@@ -30,7 +29,6 @@ def startup_event():
         raise
 
 
-# Health check endpoint
 @app.get("/health")
 async def health_check():
     return {
@@ -39,7 +37,6 @@ async def health_check():
         "version": "1.0.0"
     }
 
-# Root endpoint
 @app.get("/")
 async def root():
     return {
@@ -48,7 +45,6 @@ async def root():
         "health": "/health"
     }
 
-# Include debug router ONLY in development
 if settings.ENVIRONMENT == "development":
     from app.routers import debug
     app.include_router(debug.router)
@@ -56,5 +52,6 @@ if settings.ENVIRONMENT == "development":
 
 app.include_router(user.router)
 app.include_router(recommendations.router)
+app.include_router(venues.router)
 app.include_router(analytics.router)
 app.include_router(interventions.router)

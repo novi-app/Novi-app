@@ -8,6 +8,6 @@ class LocationInput(BaseModel):
 class RecommendationRequest(BaseModel):
     user_id: str
     location: LocationInput
-    intent: str = "any"
+    activity: str = "any"
     session_preferences: Optional[dict] = None 
     

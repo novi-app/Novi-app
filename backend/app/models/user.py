@@ -7,6 +7,7 @@ class UserPreferences(BaseModel):
     activity_preference: List[str] = []
 
 class OnboardingRequest(BaseModel):
+    username: str
     preferences: UserPreferences
 
 class OnboardingResponse(BaseModel):

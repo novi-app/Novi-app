@@ -1,52 +1,32 @@
-"""
-Recommendation engine - core matching logic.
-Computes similarity between user and venue embeddings.
-"""
-import math
 import numpy as np
-from typing import Dict, Any, List, Optional
-from app.utils.firebase_client import get_user, get_venues
-from app.services.embedding_service import generate_session_embedding
+from typing import List, Dict, Any, Optional
+from math import radians, sin, cos, sqrt, atan2
+from app.utils.firebase_client import get_db, get_user
+from app.services.embedding_service import generate_session_embedding, generate_user_embedding
 
 
-def cosine_similarity(user_vec: List[float], venue_vec: List[float]) -> float:
-    """Calculate cosine similarity between two embedding vectors."""
-    v1 = np.array(user_vec, dtype=np.float32)
-    v2 = np.array(venue_vec, dtype=np.float32)
-    
-    dot_product = np.dot(v1, v2)
-    norm1 = np.linalg.norm(v1)
-    norm2 = np.linalg.norm(v2)
+def cosine_similarity(vec1: List[float], vec2: List[float]) -> float:
+    dot_product = np.dot(vec1, vec2)
+    norm1 = np.linalg.norm(vec1)
+    norm2 = np.linalg.norm(vec2)
     
     if norm1 == 0 or norm2 == 0:
         return 0.0
-        
+    
     return float(dot_product / (norm1 * norm2))
 
 
-def haversine_distance(
-    user_lat: float,
-    user_lon: float,
-    venue_lat: float,
-    venue_lon: float
-) -> float:
-    """Calculate distance between two lat/lon points in kilometers."""
-    R = 6371.0  # Earth radius in km
-
-    lat1_rad = math.radians(user_lat)
-    lon1_rad = math.radians(user_lon)
-    lat2_rad = math.radians(venue_lat)
-    lon2_rad = math.radians(venue_lon)
-
-    dlat = lat2_rad - lat1_rad
-    dlon = lon2_rad - lon1_rad
-
-    a = (
-        math.sin(dlat / 2) ** 2
-        + math.cos(lat1_rad) * math.cos(lat2_rad) * math.sin(dlon / 2) ** 2
-    )
-    c = 2 * math.atan2(math.sqrt(a), math.sqrt(1 - a))
-
+def haversine_distance(lat1: float, lon1: float, lat2: float, lon2: float) -> float:
+    R = 6371
+    
+    lat1, lon1, lat2, lon2 = map(radians, [lat1, lon1, lat2, lon2])
+    
+    dlat = lat2 - lat1
+    dlon = lon2 - lon1
+    
+    a = sin(dlat/2)**2 + cos(lat1) * cos(lat2) * sin(dlon/2)**2
+    c = 2 * atan2(sqrt(a), sqrt(1-a))
+    
     return R * c
 
 
@@ -55,89 +35,83 @@ def get_recommendations(
     user_lat: float,
     user_lon: float,
     session_preferences: Optional[dict] = None,
-    intent: str = "any",
-    radius_km: float = 50.0,
+    activity: str = "any",
+    radius_km: float = 30.0,
     limit: int = 5
 ) -> List[Dict[str, Any]]:
-    """
-    Get top N venue recommendations based on semantic similarity and location.
     
-    Args:
-        user_id: User's ID (to load their embedding)
-        user_lat: User's latitude
-        user_lon: User's longitude
-        session_preferences: Optional live session data (vibe, intent, mood, budget override)
-        intent: Category filter (e.g., "restaurant", "cafe")
-        radius_km: Maximum distance from user location
-        limit: Number of recommendations to return
-        
-    Returns:
-        List of venue dicts sorted by match score
-        
-    Raises:
-        ValueError: If user not found or missing embedding
-    """
-    # 1. Load user data
     user_data = get_user(user_id)
-    if not user_data or "embedding" not in user_data:
-        raise ValueError(f"User {user_id} not found or missing embedding")
+    if not user_data:
+        raise ValueError(f"User {user_id} not found")
     
-    # 2. Determine budget limit
-    user_budget = user_data.get("preferences", {}).get("budget", 2)  # Default moderate
-    if session_preferences and session_preferences.get("budget"):
-        user_budget = session_preferences["budget"]  # Session override
+    onboarding_prefs = user_data.get("preferences", {})
+    budget = onboarding_prefs.get("budget", 2)
     
-    # 3. Generate embedding (with session weighting if provided)
+    db = get_db()
+    query = db.collection("venues")
+    
+    if activity and activity != "any":
+        query = query.where("activity", "==", activity)
+    
+    query = query.limit(1000)
+    
+    all_venues = []
+    for doc in query.stream():
+        venue_data = doc.to_dict()
+        venue_data["doc_id"] = doc.id
+        all_venues.append(venue_data)
+    
+    if not all_venues:
+        return []
+    
     if session_preferences:
-        onboarding_embedding = user_data["embedding"]
-        user_embedding = generate_session_embedding(
-            onboarding_embedding,
-            session_preferences,
-            onboarding_weight=0.4,
-            session_weight=0.6
-        )
+        user_embedding = generate_session_embedding(onboarding_prefs, session_preferences)
     else:
-        user_embedding = user_data["embedding"]
-
-    # 4. Load venues (with optional category filter)
-    category = None if intent == "any" else intent
-    all_venues = get_venues(limit=100, category=category)
+        user_embedding = user_data.get("embedding")
+        if not user_embedding:
+            user_embedding = generate_user_embedding(onboarding_prefs)
     
     scored_venues = []
-
-    # 5. Filter by distance, budget, and compute similarity
+    
     for venue in all_venues:
-        # Check location exists
-        venue_lat = venue.get("location", {}).get("latitude")
-        venue_lon = venue.get("location", {}).get("longitude")
-        if venue_lat is None or venue_lon is None:
+        if "embedding" not in venue:
             continue
         
-        # Filter by distance
+        location = venue.get("location", {})
+        venue_lat = location.get("latitude") or location.get("lat")
+        venue_lon = location.get("longitude") or location.get("lng")
+        
+        if not venue_lat or not venue_lon:
+            continue
+        
         distance = haversine_distance(user_lat, user_lon, venue_lat, venue_lon)
+        
         if distance > radius_km:
             continue
         
-        # Filter by budget
         venue_price = venue.get("price_level", 0)
-        if venue_price > user_budget and venue_price != 0:
+        if venue_price > budget + 1 and venue_price != 0:
             continue
         
-        # Check embedding exists
-        venue_embedding = venue.get("embedding")
-        if not venue_embedding:
-            continue
+        venue_embedding = venue.get("embedding", [])
         
-        # Compute similarity
         similarity = cosine_similarity(user_embedding, venue_embedding)
         
-        # Combine with solo score (60% similarity, 40% solo score)
-        solo_score = venue.get("solo_score", 50) / 100.0  # Normalize to 0-1
-        combined_score = (0.6 * similarity) + (0.4 * solo_score)
+        if distance <= 5:
+            distance_penalty = 0.0
+        elif distance <= 15:
+            distance_penalty = 0.1
+        elif distance <= 30:
+            distance_penalty = 0.2
+        else:
+            continue
+        
+        adjusted_score = similarity * (1 - distance_penalty)
         
         result = {
             "venue_id": venue.get("doc_id") or venue.get("place_id"),
             "name": venue.get("name"),
+            "activity": venue.get("activity"),
             "category": venue.get("category"),
             "location": {
                 "lat": venue_lat,
@@ -146,16 +120,40 @@ def get_recommendations(
             "address": venue.get("address"),
             "distance_km": round(distance, 2),
             "rating": venue.get("rating"),
+            "reviews_count": venue.get("reviews_count", 0),
             "price_level": venue_price,
+            "website": venue.get("website"),
+            "phone": venue.get("phone"),
+            "opening_hours": venue.get("opening_hours", {}),
+            "photo": venue.get("photo"),
             "similarity_score": round(similarity, 4),
             "solo_score": venue.get("solo_score"),
             "solo_reason": venue.get("solo_reason"),
             "pro_tip": venue.get("pro_tip"),
-            "combined_score": round(combined_score, 4),
+            "tags": venue.get("tags", []),
+            "combined_score": round(adjusted_score, 4),
         }
         scored_venues.append(result)
-
-    # 6. Sort by combined score and return top N
+    
     scored_venues.sort(key=lambda x: x["combined_score"], reverse=True)
     
     return scored_venues[:limit]
+
+
+def get_trending_venues(limit: int = 10) -> List[Dict[str, Any]]:
+    db = get_db()
+    
+    venues = db.collection("venues") \
+        .where("rating", ">=", 4.5) \
+        .where("reviews_count", ">=", 1000) \
+        .order_by("rating", direction=db.DESCENDING) \
+        .limit(limit) \
+        .stream()
+    
+    results = []
+    for doc in venues:
+        venue_data = doc.to_dict()
+        venue_data["venue_id"] = doc.id
+        results.append(venue_data)
+    
+    return results

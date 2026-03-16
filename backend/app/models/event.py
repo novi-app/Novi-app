@@ -1,20 +1,16 @@
-"""
-Behavioral Events Models.
-"""
 from typing import Optional, Any, Literal
 from pydantic import BaseModel, Field
 
 class BehavioralEvent(BaseModel):
     """Single behavioral event with required fields."""
-    event_id: Optional[str] = None  # For deduplication
-    event_type: str  # Required: scroll_event, venue_view, etc.
+    event_id: Optional[str] = None
+    event_type: str
     session_id: Optional[str] = None
     user_id: Optional[str] = None
-    timestamp: Optional[int] = None  # Will be set by backend if missing
+    timestamp: Optional[int] = None 
     
-    # Additional properties (event-specific data)
     class Config:
-        extra = "allow"  # Allow additional fields for event-specific properties
+        extra = "allow"
 
 
 class EventBatchRequest(BaseModel):
