@@ -1,7 +1,3 @@
-"""
-Collect 500+ diverse Tokyo venues optimized for solo travelers.
-Ensures balanced distribution across price levels and solo-friendliness.
-"""
 import requests
 import json
 import time
@@ -12,26 +8,38 @@ from app.utils.firebase_client import initialize_firebase, get_db
 
 
 def upload_photo_to_storage(photo_url: str, venue_id: str, photo_index: int = 0) -> str:
-    """Download photo from Google and upload to Firebase Storage."""
-    try:
-        response = requests.get(photo_url, timeout=15)
-        if response.status_code != 200:
-            return None
-        
-        bucket = storage.bucket()
-        blob = bucket.blob(f"venue_photos/{venue_id}_{photo_index}.jpg")
-        blob.upload_from_string(response.content, content_type="image/jpeg")
-        blob.make_public()
-        
-        return blob.public_url
-        
-    except Exception as e:
-        print(f"Photo upload failed: {e}")
-        return None
+    max_retries = 3
+    
+    for attempt in range(max_retries):
+        try:
+            response = requests.get(photo_url, timeout=15)
+            
+            if response.status_code == 429:
+                wait_time = (2 ** attempt) * 2
+                print(f"  Rate limited, waiting {wait_time}s...")
+                time.sleep(wait_time)
+                continue
+            
+            if response.status_code != 200:
+                return None
+            
+            bucket = storage.bucket()
+            blob = bucket.blob(f"venue_photos/{venue_id}_{photo_index}.jpg")
+            blob.upload_from_string(response.content, content_type="image/jpeg")
+            blob.make_public()
+            
+            return blob.public_url
+            
+        except Exception as e:
+            if attempt == max_retries - 1:
+                print(f"Photo upload failed after {max_retries} attempts: {e}")
+                return None
+            time.sleep(2 ** attempt)
+    
+    return None
 
 
 def get_existing_place_ids() -> set:
-    """Fetch existing place_ids from Firestore to prevent duplicates."""
     initialize_firebase()
     db = get_db()
     
@@ -41,8 +49,49 @@ def get_existing_place_ids() -> set:
     return existing_ids
 
 
+def load_checkpoint(category: str) -> list:
+    checkpoint_file = Path(f"data/venues/checkpoint_{category}.json")
+    if checkpoint_file.exists():
+        with open(checkpoint_file, "r", encoding="utf-8") as f:
+            return json.load(f)
+    return []
+
+
+def save_checkpoint(venues: list, category: str):
+    data_dir = Path("data/venues")
+    data_dir.mkdir(parents=True, exist_ok=True)
+    checkpoint_file = data_dir / f"checkpoint_{category}.json"
+    
+    with open(checkpoint_file, "w", encoding="utf-8") as f:
+        json.dump(venues, f, indent=2, ensure_ascii=False)
+    print(f"  Checkpoint saved: {len(venues)} total venues")
+
+
+def get_activity_for_category(category: str) -> str:
+    activity_map = {
+        "budget restaurant": "food",
+        "restaurant": "food",
+        "budget cafe": "food",
+        "cafe": "food",
+        "bar": "social",
+        "izakaya": "social",
+        "karaoke": "social",
+        "museum": "explore",
+        "shinto shrine": "explore",
+        "buddhist temple": "explore",
+        "bookstore": "explore",
+        "observation deck": "explore",
+        "park": "explore",
+        "onsen": "explore",
+        "spa": "explore",
+        "shopping mall": "explore",
+        "shopping street": "explore",
+        "amusement park": "explore",
+    }
+    return activity_map.get(category, "explore")
+
+
 def get_price_level(category: str) -> int:
-    """Estimate price level if Google API doesn't provide it."""
     free_categories = ["park", "shinto shrine", "buddhist temple", "observation deck"]
     if category in free_categories or "shrine" in category or "temple" in category:
         return 0
@@ -53,21 +102,17 @@ def get_price_level(category: str) -> int:
 
 
 def get_search_query(category: str, neighborhood: str) -> str:
-    """Generate optimized search query for better targeting."""
-    
-    # Budget-specific queries
     budget_queries = {
         "budget restaurant": "cheap affordable budget restaurant",
         "budget cafe": "affordable budget coffee shop",
     }
     
-    # Solo-friendly modifiers
     solo_queries = {
         "izakaya": "counter seating izakaya solo-friendly",
         "onsen": "solo traveler onsen hot spring",
+        "karaoke": "solo karaoke private room",
     }
     
-    # Use specific query if available
     if category in budget_queries:
         query = budget_queries[category]
     elif category in solo_queries:
@@ -79,8 +124,6 @@ def get_search_query(category: str, neighborhood: str) -> str:
 
 
 def get_neighborhoods_for_category(category: str) -> list:
-    """Return appropriate neighborhoods based on category."""
-    
     neighborhoods = {
         "premium": ["Ginza", "Roppongi", "Shibuya", "Shinjuku"],
         "moderate": ["Harajuku", "Ebisu", "Nakameguro", "Ikebukuro", "Meguro"],
@@ -88,66 +131,97 @@ def get_neighborhoods_for_category(category: str) -> list:
         "general": ["Asakusa", "Ueno", "Akihabara", "Yanaka"],
     }
     
-    # Budget categories use budget + moderate neighborhoods
     if "budget" in category:
         return neighborhoods["budget"] + neighborhoods["moderate"]
-    
-    # Premium categories use premium + moderate
     elif category in ["observation deck", "museum"]:
         return neighborhoods["premium"] + neighborhoods["moderate"]
-    
-    # Everything else uses moderate + general
     else:
         return neighborhoods["moderate"] + neighborhoods["general"]
 
 
+def get_place_details(place_id: str) -> dict:
+    url = f"https://places.googleapis.com/v1/places/{place_id}"
+    headers = {
+        "Content-Type": "application/json",
+        "X-Goog-Api-Key": settings.GOOGLE_PLACES_API_KEY,
+        "X-Goog-FieldMask": (
+            "id,displayName,formattedAddress,location,rating,userRatingCount,"
+            "priceLevel,websiteUri,nationalPhoneNumber,internationalPhoneNumber,"
+            "regularOpeningHours,editorialSummary,types,photos"
+        )
+    }
+    
+    max_retries = 3
+    for attempt in range(max_retries):
+        try:
+            response = requests.get(url, headers=headers, timeout=20)
+            
+            if response.status_code == 429:
+                wait_time = (2 ** attempt) * 2
+                print(f"  Rate limited on Place Details, waiting {wait_time}s...")
+                time.sleep(wait_time)
+                continue
+            
+            if response.status_code == 200:
+                return response.json()
+            else:
+                print(f"  Place Details API error {response.status_code}")
+                return None
+                
+        except Exception as e:
+            if attempt == max_retries - 1:
+                print(f"  Place Details failed: {e}")
+                return None
+            time.sleep(2 ** attempt)
+    
+    return None
+
+
 def collect_tokyo_venues():
-    """Fetch 500+ diverse venues optimized for solo travelers."""
     initialize_firebase()
     existing_ids = get_existing_place_ids()
     print(f"Found {len(existing_ids)} existing venues in database.\n")
+    
+    all_venues = []
+    checkpoint_exists = any(Path(f"data/venues/checkpoint_{cat}.json").exists() 
+                        for cat in ["budget restaurant", "restaurant"])
+    
+    if checkpoint_exists:
+        resume = input("Found checkpoint files. Resume from checkpoint? (y/n): ")
+        if resume.lower() == 'y':
+            for cat_file in Path("data/venues").glob("checkpoint_*.json"):
+                with open(cat_file, "r") as f:
+                    checkpointed = json.load(f)
+                    all_venues.extend(checkpointed)
+                    existing_ids.update(v["place_id"] for v in checkpointed)
+            print(f"Resumed with {len(all_venues)} venues from checkpoints\n")
     
     url = "https://places.googleapis.com/v1/places:searchText"
     headers = {
         "Content-Type": "application/json",
         "X-Goog-Api-Key": settings.GOOGLE_PLACES_API_KEY,
-        "X-Goog-FieldMask": (
-            "places.id,places.displayName,places.location,"
-            "places.formattedAddress,places.rating,places.priceLevel,"
-            "places.reviewSummary,places.photos,nextPageToken"
-        )
+        "X-Goog-FieldMask": "places.id,nextPageToken"
     }
     
-    # Optimized distribution for solo travelers
     categories = {
-        # FOOD - Budget Distribution (40% budget-focused)
-        "budget restaurant": 40,
-        "restaurant": 80,
-        "budget cafe": 30,
-        "cafe": 70,
-        
-        # SOCIAL (Solo-friendly drinking/dining)
-        "bar": 40,
-        "izakaya": 30,
-        
-        # EXPLORE
-        "museum": 40,
-        "shinto shrine": 20,
-        "buddhist temple": 20,
-        "bookstore": 15,
-        
-        # UNWIND
-        "park": 30,
-        "onsen": 15,
-        "spa": 10,
-        
-        # SHOPPING
-        "shopping mall": 25,
-        "shopping street": 20,
-        
-        # SIGHTSEEING
-        "observation deck": 10,
-        "amusement park": 5,
+        "budget restaurant": 95,
+        "restaurant": 50,
+        "budget cafe": 60,
+        "cafe": 35,
+        "bar": 30,
+        "izakaya": 12,
+        "karaoke": 6,
+        "museum": 48,
+        "shinto shrine": 30,
+        "buddhist temple": 30,
+        "bookstore": 24,
+        "observation deck": 18,
+        "park": 48,
+        "onsen": 24,
+        "spa": 18,
+        "shopping mall": 30,
+        "shopping street": 30,
+        "amusement park": 6,
     }
     
     price_map = {
@@ -157,10 +231,11 @@ def collect_tokyo_venues():
         "PRICE_LEVEL_VERY_EXPENSIVE": 4
     }
     
-    all_venues = []
-    price_distribution = {0: 0, 1: 0, 2: 0, 3: 0}
+    price_distribution = {0: 0, 1: 0, 2: 0, 3: 0, 4: 0}
     
-    print("Starting optimized Tokyo venue collection...\n")
+    print("Starting Tokyo venue collection (600 venues)...")
+    print("Centered on: Shibuya (35.6595, 139.7004)")
+    print("Search radius: 30km\n")
     
     for category, target_count in categories.items():
         collected_for_category = 0
@@ -175,7 +250,6 @@ def collect_tokyo_venues():
             page_token = ""
             
             while collected_for_category < target_count:
-                # Get optimized search query
                 search_query = get_search_query(category, neighborhood)
                 
                 payload = {
@@ -198,68 +272,80 @@ def collect_tokyo_venues():
                                 
                             place_id = place.get("id")
             
-                            # Skip duplicates
                             if place_id in existing_ids:
                                 continue
-
-                            # Extract review summary
-                            review_summary = place.get("reviewSummary", {})
-                            description = review_summary.get("text", {}).get("text", "")
-                            if description:
-                                description = description.removeprefix("People say this").strip().capitalize()
-                            else:
-                                description = "Popular spot in Tokyo"
                             
-                            # Map price level
-                            raw_price = place.get("priceLevel", "UNKNOWN")
+                            details = get_place_details(place_id)
+                            if not details:
+                                continue
+                            
+                            display_name = details.get("displayName", {})
+                            name = display_name.get("text") if isinstance(display_name, dict) else str(display_name)
+                            
+                            location = details.get("location", {})
+                            
+                            editorial = details.get("editorialSummary", {})
+                            if isinstance(editorial, dict):
+                                description = editorial.get("text", "")
+                            else:
+                                description = ""
+                            
+                            if not description:
+                                types = details.get("types", [])
+                                description = f"Popular {category} in Tokyo"
+                            
+                            raw_price = details.get("priceLevel", "UNKNOWN")
                             price_level = price_map.get(raw_price, get_price_level(category))
                             
-                            # Track distribution
                             price_distribution[price_level] += 1
                             
-                            # Fetch photos (up to 4)
-                            photos = place.get("photos", [])
-                            photo_urls = []
+                            photos = details.get("photos", [])
+                            photo_url = None
                             
                             if photos:
-                                for i, photo in enumerate(photos[:4]):
-                                    photo_name = photo.get("name")
-                                    if photo_name:
-                                        photo_url = (
-                                            f"https://places.googleapis.com/v1/{photo_name}/media"
-                                            f"?key={settings.GOOGLE_PLACES_API_KEY}"
-                                            f"&maxHeightPx=800&maxWidthPx=800"
-                                        )
-                                        
-                                        uploaded_url = upload_photo_to_storage(photo_url, place_id, i)
-                                        
-                                        if uploaded_url:
-                                            photo_urls.append(uploaded_url)
-                                        
-                                        time.sleep(0.5)  # Rate limit protection
+                                photo = photos[0]
+                                photo_name = photo.get("name")
+                                if photo_name:
+                                    google_photo_url = (
+                                        f"https://places.googleapis.com/v1/{photo_name}/media"
+                                        f"?key={settings.GOOGLE_PLACES_API_KEY}"
+                                        f"&maxHeightPx=800&maxWidthPx=800"
+                                    )
+                                    
+                                    photo_url = upload_photo_to_storage(google_photo_url, place_id, 0)
+                                    time.sleep(0.5)
                             
-                            # Structure venue data
+                            phone = details.get("internationalPhoneNumber") or \
+                                    details.get("nationalPhoneNumber") or \
+                                    "Not available"
+                            
                             venue = {
                                 "place_id": place_id,
-                                "name": place.get("displayName", {}).get("text", "Unknown"),
-                                "category": category.replace("budget ", ""),  # Normalize category
-                                "location": place.get("location", {}),
-                                "address": place.get("formattedAddress", "Unknown"),
-                                "rating": place.get("rating", 0.0),
+                                "name": name or "Unknown",
+                                "activity": get_activity_for_category(category),
+                                "category": category.replace("budget ", ""),
+                                "location": location,
+                                "address": details.get("formattedAddress", "Unknown"),
+                                "rating": details.get("rating", 0.0),
+                                "reviews_count": details.get("userRatingCount", 0),
                                 "price_level": price_level,
+                                "website": details.get("websiteUri") or "Not available",
+                                "phone": phone,
+                                "opening_hours": details.get("regularOpeningHours", {}),
                                 "description": description,
-                                "photos": photo_urls,
+                                "google_types": details.get("types", []),
+                                "photo": photo_url or "",
                             }
                             
                             all_venues.append(venue)
                             existing_ids.add(place_id)
                             collected_for_category += 1
                             
-                            photos_msg = f"{len(photo_urls)} photos" if photo_urls else "no photos"
+                            photo_msg = "✓ photo" if photo_url else "✗ no photo"
                             price_symbol = "$" * price_level if price_level > 0 else "FREE"
-                            print(f"   {venue['name'][:40]} ({price_symbol}) - {photos_msg} ({collected_for_category}/{target_count})")
+                            reviews_msg = f"{venue['reviews_count']} reviews" if venue['reviews_count'] > 0 else "no reviews"
+                            print(f"   {name[:35]:35} ({price_symbol:4}) {photo_msg} | {reviews_msg:12} ({collected_for_category}/{target_count})")
                         
-                        # Pagination
                         page_token = data.get("nextPageToken")
                         if not page_token:
                             break
@@ -273,9 +359,10 @@ def collect_tokyo_venues():
                     print(f"Exception: {e}")
                     break
         
-        print(f"Collected {collected_for_category} {category}s\n")
+        print(f"Collected {collected_for_category} {category}s")
+        save_checkpoint(all_venues, category)
+        print()
     
-    # Save to file
     data_dir = Path("data/venues")
     data_dir.mkdir(parents=True, exist_ok=True)
     output_file = data_dir / "venues_raw.json"
@@ -283,30 +370,34 @@ def collect_tokyo_venues():
     with open(output_file, "w", encoding="utf-8") as f:
         json.dump(all_venues, f, indent=2, ensure_ascii=False)
     
-    # Statistics
-    total_photos = sum(len(v.get("photos", [])) for v in all_venues)
-    avg_photos = total_photos / len(all_venues) if all_venues else 0
+    total_photos = sum(1 for v in all_venues if v.get("photo"))
+    total_with_website = sum(1 for v in all_venues if v.get("website") != "Not available")
+    total_with_phone = sum(1 for v in all_venues if v.get("phone") != "Not available")
+    total_with_reviews = sum(1 for v in all_venues if v.get("reviews_count", 0) > 0)
     
     print("\n" + "="*60)
     print("COLLECTION SUMMARY")
     print("="*60)
     print(f"Total venues: {len(all_venues)}")
-    print(f"Total photos: {total_photos} (avg {avg_photos:.1f} per venue)")
+    print(f"\nData Completeness:")
+    print(f"  Photos:        {total_photos:3d} ({total_photos/len(all_venues)*100:5.1f}%)")
+    print(f"  Websites:      {total_with_website:3d} ({total_with_website/len(all_venues)*100:5.1f}%)")
+    print(f"  Phone numbers: {total_with_phone:3d} ({total_with_phone/len(all_venues)*100:5.1f}%)")
+    print(f"  Reviews:       {total_with_reviews:3d} ({total_with_reviews/len(all_venues)*100:5.1f}%)")
+    
     print(f"\nPrice Distribution:")
     print(f"  FREE:              {price_distribution[0]:3d} ({price_distribution[0]/len(all_venues)*100:5.1f}%)")
     print(f"  Budget (¥<1,500):  {price_distribution[1]:3d} ({price_distribution[1]/len(all_venues)*100:5.1f}%)")
     print(f"  Moderate (¥1.5-3k): {price_distribution[2]:3d} ({price_distribution[2]/len(all_venues)*100:5.1f}%)")
-    print(f"  Upscale (¥3k+):    {price_distribution[3]:3d} ({price_distribution[3]/len(all_venues)*100:5.1f}%)")
+    print(f"  Upscale (¥3k-6k):  {price_distribution[3]:3d} ({price_distribution[3]/len(all_venues)*100:5.1f}%)")
+    print(f"  Luxury (¥6k+):     {price_distribution[4]:3d} ({price_distribution[4]/len(all_venues)*100:5.1f}%)")
     
-    # Warnings
     budget_total = price_distribution[0] + price_distribution[1]
-    if budget_total < len(all_venues) * 0.3:
-        print(f"\nWARNING: Budget venues ({budget_total}) < 30% of total")
-        print("   Consider running script again with more budget neighborhoods")
+    if budget_total < len(all_venues) * 0.25:
+        print(f"\nWARNING: Budget venues ({budget_total}) < 25% of total")
     
-    if avg_photos < 2:
-        print(f"\nWARNING: Average photos ({avg_photos:.1f}) is low")
-        print("   Many venues may not have good photos")
+    if total_photos < len(all_venues) * 0.7:
+        print(f"\nWARNING: Only {total_photos/len(all_venues)*100:.1f}% of venues have photos")
     
     print(f"\nSaved to: {output_file}")
     print("\nNext: Run generate_embeddings.py")
