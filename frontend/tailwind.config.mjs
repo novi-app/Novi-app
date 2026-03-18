@@ -13,7 +13,7 @@ const config = {
     extend: {
       fontFamily: {
         display: ['var(--font-sora)', 'serif'],
-        sans:    ['var(--font-lora)', 'sans-serif'],
+        sans:    ['var(--font-sora)', 'sans-serif'],
       },
 
       colors: {

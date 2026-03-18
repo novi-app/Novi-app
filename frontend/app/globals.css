@@ -8,23 +8,17 @@
 ───────────────────────────────────────── */
 :root {
   --font-display: var(--font-sora);
-  --font-sans:    var(--font-lora);
+  --font-sans:    var(--font-sora);
 }
 
-/* ─────────────────────────────────────────
-  BASE
-───────────────────────────────────────── */
+
 body {
   font-family: var(--font-sans), sans-serif;
   -webkit-font-smoothing: antialiased;
   -moz-osx-font-smoothing: grayscale;
 }
 
-/* ─────────────────────────────────────────
-  KEYFRAMES
-───────────────────────────────────────── */
 
-/* Landing screen */
 @keyframes zoom-out {
   from { transform: scale(1.12); }
   to   { transform: scale(1.00); }
@@ -50,7 +44,7 @@ body {
   100% { background-position:  200% center; }
 }
 
-/* Shared UI */
+
 @keyframes slide-up {
   from { opacity: 0; transform: translateY(16px); }
   to   { opacity: 1; transform: translateY(0);    }

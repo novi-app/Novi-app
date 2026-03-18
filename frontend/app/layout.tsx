@@ -1,15 +1,11 @@
 import type { Metadata, Viewport } from "next"
-import { Sora, Lora } from 'next/font/google'
+import { Sora } from 'next/font/google'
 import ClientHooks from "./ClientHooks"
 import "./globals.css"
 
 const sora = Sora({ 
   subsets: ['latin'], 
   variable: '--font-sora',
-})
-const lora = Lora({ 
-  subsets: ['latin'], 
-  variable: '--font-lora' 
 })
 
 export const metadata: Metadata = {
@@ -33,7 +29,7 @@ export const viewport: Viewport = {
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode; }>) {
   return (
     <html lang="en">
-      <body className={`${sora.variable} ${lora.variable} antialiased`}>
+      <body className={`${sora.variable} antialiased`}>
         {children}
         <ClientHooks/>
       </body>
