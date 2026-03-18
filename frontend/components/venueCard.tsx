@@ -1,219 +1,154 @@
 "use client";
 
-import * as React from "react";
-import { Card } from "./card";
-import { trackDirectionsClicked } from "@/lib/analytics";
-import { useViewportTracking } from "@/hooks/useViewportTracking";
+import { useState } from "react";
+import Image from "next/image";
+import type { Venue } from "@/lib/types";
 
 interface VenueCardProps {
-  venue: {
-    venue_id: string;
-    name: string;
-    category: string;
-    location: { lat: number; lng: number };
-    address?: string;
-    distance_km: number;
-    rating?: number;
-    price_level?: number;
-    solo_score?: number;
-    solo_reason?: string;
-    pro_tip?: string;
-    combined_score?: number;
-  };
-  cardPosition: number;
-  onViewDetails?: (venueId: string) => void;
-  onCardView?: (venueId: string) => void;
+  venue: Venue;
+  size?: "large" | "small";
+  saved?: boolean;
+  onSaveToggle?: () => void;
+  onDetails: () => void;
+  onDirections: () => void;
 }
 
-function StarRating({ rating }: { rating: number }) {
-  const full = Math.floor(rating);
-  const half = rating % 1 >= 0.5;
-  return (
-    <div className="flex items-center gap-0.5">
-      {[...Array(5)].map((_, i) => {
-        const color =
-          i < full ? "#D97D3E"
-            : i === full && half ? "rgba(217,125,62,0.45)"
-              : "rgba(11,79,74,0.12)";
-        return (
-          <svg key={i} width="13" height="13" viewBox="0 0 20 20" fill={color}>
-            <path d="M10 15l-5.878 3.09 1.123-6.545L.489 6.91l6.572-.955L10 0l2.939 5.955 6.572.955-4.756 4.635 1.123 6.545z" />
-          </svg>
-        );
-      })}
-      <span className="ml-1.5 text-xs font-medium text-secondary/55">
-        {rating.toFixed(1)}
-      </span>
-    </div>
-  );
-}
+export default function VenueCard({
+  venue,
+  size = "small",
+  saved = false,
+  onSaveToggle,
+  onDetails,
+  onDirections,
+}: VenueCardProps) {
+  const [isSaving, setIsSaving] = useState(false);
+  
+  const priceSymbol = venue.price_level > 0 ? "$".repeat(venue.price_level) : "FREE";
+  const isLarge = size === "large";
 
-// price_level 0 or undefined → all $$$ at 30% opacity (unspecified)
-// price_level 1-3 → amber filled, remainder muted
-function PriceLevel({ level }: { level?: number }) {
-  if (!level || level === 0) {
-    return <span className="text-xs font-medium tracking-wide text-secondary/30">$$$</span>;
-  }
-  return (
-    <span className="text-xs font-medium tracking-wide">
-      <span className="text-primary/80">{"$".repeat(level)}</span>
-      <span className="text-secondary/20">{"$".repeat(Math.max(0, 3 - level))}</span>
-    </span>
-  );
-}
-
-function CardHeader({ category, distance_km }: { category: string; distance_km: number }) {
-  return (
-    <div className="relative h-44 bg-secondary overflow-hidden flex items-center justify-center">
-      {/* Large ambient category initial */}
-      <span
-        aria-hidden="true"
-        className="font-display font-medium text-white/[0.07] leading-none select-none absolute"
-        style={{ fontSize: "160px", letterSpacing: "-0.04em" }}
-      >
-        {category.charAt(0).toUpperCase()}
-      </span>
-
-      {/* Amber bottom accent */}
-      <div
-        className="absolute bottom-0 left-0 right-0 h-[2px]"
-        style={{ background: "linear-gradient(90deg, transparent, rgba(217,125,62,0.6), transparent)" }}
-      />
-
-      {/* Distance — top right */}
-      <span
-        className="absolute top-3 right-3 bg-white/10 backdrop-blur-sm text-white/75 font-medium px-2.5 py-1 rounded-full"
-        style={{ fontSize: "11px", border: "1px solid rgba(255,255,255,0.12)" }}
-      >
-        {distance_km} km
-      </span>
-
-      {/* Category label — bottom left */}
-      <span
-        className="absolute bottom-4 left-4 uppercase tracking-[0.15em] text-white/30 font-medium"
-        style={{ fontSize: "10px" }}
-      >
-        {category}
-      </span>
-    </div>
-  );
-}
-
-export const VenueCard: React.FC<VenueCardProps> = ({
-  venue, cardPosition, onViewDetails, onCardView,
-}) => {
-  const [hasReportedView, setHasReportedView] = React.useState(false);
-  const cardRef = useViewportTracking(
-    venue.venue_id, venue.name, venue.category, cardPosition
-  );
-
-  React.useEffect(() => {
-    if (onCardView && !hasReportedView) {
-      const timer = setTimeout(() => {
-        onCardView(venue.venue_id);
-        setHasReportedView(true);
-      }, 500);
-      return () => clearTimeout(timer);
+  const handleSaveClick = async () => {
+    if (!onSaveToggle || isSaving) return;
+    setIsSaving(true);
+    try {
+      await onSaveToggle();
+    } finally {
+      setIsSaving(false);
     }
-  }, [venue.venue_id, onCardView, hasReportedView]);
-
-  const handleGetDirections = () => {
-    trackDirectionsClicked(venue.venue_id, venue.name, venue.category, venue.distance_km);
-    window.open(
-      `https://www.google.com/maps/dir/?api=1&destination=${venue.location.lat},${venue.location.lng}`,
-      "_blank"
-    );
   };
 
   return (
-    <Card ref={cardRef} variant="elevated" padding="none" className="overflow-hidden">
-      <CardHeader category={venue.category} distance_km={venue.distance_km} />
-      <div className="px-5 pt-4 pb-5 space-y-3.5">
-        <div>
-          <h3
-            className="font-display font-medium text-secondary leading-tight line-clamp-2"
-            style={{ fontSize: "clamp(15px, 3.5vw, 17px)", letterSpacing: "-0.01em" }}
+    <div className={`bg-white rounded-2xl overflow-hidden ${isLarge ? "shadow-lg" : "shadow-md"}`}>
+      <div className={`relative ${isLarge ? "h-64" : "h-24"} bg-gray-100`}>
+        {venue.photo ? (
+          <Image
+            src={venue.photo}
+            alt={venue.name}
+            fill
+            className="object-cover"
+            priority={isLarge}
+          />
+        ) : (
+          <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300" />
+        )}
+        
+        {onSaveToggle && (
+          <button
+            onClick={handleSaveClick}
+            disabled={isSaving}
+            className="absolute top-3 right-3 w-10 h-10 bg-white rounded-full shadow-md flex items-center justify-center active:scale-95 transition-transform disabled:opacity-50"
+            aria-label={saved ? "Unsave" : "Save"}
           >
-            {venue.name}
-          </h3>
-          <p className="text-secondary/40 text-xs capitalize mt-0.5 tracking-wide">
-            {venue.category}
+            <svg
+              className="w-5 h-5"
+              fill={saved ? "#E8700A" : "none"}
+              stroke={saved ? "#E8700A" : "#6B7280"}
+              viewBox="0 0 24 24"
+            >
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
+            </svg>
+          </button>
+        )}
+
+        {isLarge && (
+          <>
+            <button
+              onClick={onDirections}
+              className="absolute top-3 left-3 w-10 h-10 bg-white rounded-full shadow-md flex items-center justify-center active:scale-95 transition-transform"
+              aria-label="Back"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="#0D4A4A" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            
+            <button
+              onClick={onDirections}
+              className="absolute bottom-3 right-3 w-10 h-10 bg-white rounded-full shadow-md flex items-center justify-center active:scale-95 transition-transform"
+              aria-label="Next"
+            >
+              <svg className="w-5 h-5" fill="none" stroke="#0D4A4A" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 5l7 7-7 7" />
+              </svg>
+            </button>
+          </>
+        )}
+      </div>
+
+      <div className="p-4">
+        <h3 className={`font-bold text-gray-900 ${isLarge ? "text-xl mb-2" : "text-base mb-1"}`}>
+          {venue.name}
+        </h3>
+
+        <div className="flex items-center gap-2 mb-2">
+          <span className="text-yellow-500">★</span>
+          <span className="font-semibold text-gray-700">{venue.rating.toFixed(1)}</span>
+          <span className="text-gray-400">•</span>
+          <span className="text-gray-600 text-sm">{priceSymbol}</span>
+          <span className="text-gray-400">•</span>
+          <span className="text-gray-600 text-sm flex items-center gap-1">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            {venue.distance_km} min walk
+          </span>
+        </div>
+
+        {venue.tags && venue.tags.length > 0 && (
+          <div className="mb-3">
+            <span className="inline-block px-2 py-1 bg-teal-50 text-teal-700 text-xs font-medium rounded-full">
+              {venue.tags[0]}
+            </span>
+          </div>
+        )}
+
+        {isLarge && venue.pro_tip && (
+          <p className="text-sm text-gray-600 mb-4 leading-relaxed">
+            {venue.pro_tip}
           </p>
-        </div>
-
-        {(venue.rating != null || venue.price_level != null) && (
-          <div className="flex items-center justify-between">
-            {venue.rating != null && <StarRating rating={venue.rating} />}
-            <PriceLevel level={venue.price_level} />
-          </div>
         )}
 
-        {venue.pro_tip && (
-          <div
-            className="rounded-xl px-3.5 py-3 border-l-2"
-            style={{ background: "rgba(217,125,62,0.06)", borderLeftColor: "rgba(217,125,62,0.4)" }}
-          >
-            <p className="text-xs font-semibold text-primary/75 uppercase tracking-[0.12em] mb-1">
-              Pro tip
-            </p>
-            <p className="text-xs text-secondary/60 leading-relaxed">{venue.pro_tip}</p>
-          </div>
-        )}
-
-        {venue.solo_reason && (
-          <p className="text-xs text-secondary/45 leading-relaxed">{venue.solo_reason}</p>
-        )}
-
-        {venue.address && (
-          <div
-            className="flex items-center"
-            style={{ minHeight: "32px" }}
-          >
-            <p className="text-xs text-secondary/35 leading-relaxed line-clamp-2">
-              {venue.address}
-            </p>
-          </div>
-        )}
-
-        <div className="flex gap-2 pt-0.5">
+        <div className="flex gap-2">
           <button
-            onClick={() => onViewDetails?.(venue.venue_id)}
-            className="flex-1 h-11 rounded-xl font-medium text-white text-sm transition-all active:scale-[0.97]"
-            style={{
-              background: "linear-gradient(135deg, #e8923a 0%, #D97D3E 60%, #c96d2a 100%)",
-              boxShadow: "0 4px 16px rgba(217,125,62,0.28)",
-            }}
+            onClick={onDetails}
+            className={`flex-1 py-3 rounded-xl font-semibold transition-all active:scale-[0.98] ${
+              isLarge
+                ? "bg-white border-2 border-orange-500 text-orange-500"
+                : "bg-white border-2 border-orange-500 text-orange-500"
+            }`}
           >
-            View details
+            Details
           </button>
           <button
-            onClick={handleGetDirections}
-            className="h-11 px-4 rounded-xl border text-secondary/55 text-xs font-medium hover:bg-secondary/5 transition-colors shrink-0"
-            style={{ borderColor: "rgba(11,79,74,0.12)", fontSize: "12px" }}
+            onClick={onDirections}
+            className={`flex-1 py-3 rounded-xl font-semibold text-white transition-all active:scale-[0.98] ${
+              isLarge ? "bg-orange-500" : "bg-orange-500"
+            }`}
           >
-            Directions
+            Let's go
           </button>
         </div>
-
-      </div>
-    </Card>
-  );
-};
-
-export const VenueCardSkeleton: React.FC = () => (
-  <Card variant="elevated" padding="none" className="overflow-hidden animate-pulse">
-    <div className="h-44 bg-secondary/20" />
-    <div className="px-5 pt-4 pb-5 space-y-3.5">
-      <div className="space-y-2">
-        <div className="h-5 bg-secondary/8 rounded-lg w-3/4" />
-        <div className="h-3 bg-secondary/6 rounded w-1/3" />
-      </div>
-      <div className="h-3 bg-secondary/6 rounded w-1/2" />
-      <div className="h-16 bg-secondary/6 rounded-xl" />
-      <div className="flex gap-2">
-        <div className="h-11 bg-secondary/10 rounded-xl flex-1" />
-        <div className="h-11 w-24 bg-secondary/6 rounded-xl" />
       </div>
     </div>
-  </Card>
-);
+  );
+}

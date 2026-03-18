@@ -1,9 +1,30 @@
 "use client";
 
+import { useEffect } from "react";
+import { useRouter } from "next/navigation";
+import { trackOnboardingStarted } from "@/lib/analytics";
+import { LS_USER_ID } from "@/lib/onboarding";
 import Link from "next/link";
 import { Logo } from "../components/logo";
 
+
 export default function Home() {
+  const router = useRouter();
+
+  useEffect(() => {
+      if (localStorage.getItem(LS_USER_ID)) {
+        router.replace("/tabs/home");
+      }
+    }, [router]);
+
+  const handleClick = () => {
+    if (localStorage.getItem(LS_USER_ID)) {
+      router.push("/tabs/home");
+    }
+    trackOnboardingStarted();
+    router.push("/onboarding/intro/1");
+  }
+
   return (
     <div className="relative h-[100dvh] w-full overflow-hidden bg-black">
 
@@ -35,6 +56,7 @@ export default function Home() {
         <Link href="/onboarding/intro/1" className="w-full">
           <button
             className="w-full font-semibold tracking-widest text-white transition-all active:scale-[0.97]"
+            onClick={handleClick}
             style={{
               height: "7dvh",
               minHeight: "48px",

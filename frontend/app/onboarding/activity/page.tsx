@@ -10,11 +10,11 @@ import { ACTIVITY, LS_ACTIVITY, LS_USER_ID } from "@/lib/onboarding";
 export default function ActivityPage() {
   const router = useRouter();
   const [selected, setSelected] = useState<string[]>([]);
+  const [startTime] = useState(Date.now());
 
   useEffect(() => {
     if (localStorage.getItem(LS_USER_ID)) {
-      // router.replace("/recommendations");
-      router.replace("/");
+      router.replace("/tabs/home");
       return;
     }
     const saved = localStorage.getItem(LS_ACTIVITY);
@@ -27,8 +27,12 @@ export default function ActivityPage() {
 
   const handleNext = () => {
     if (!selected.length) return;
+    
     localStorage.setItem(LS_ACTIVITY, JSON.stringify(selected));
-    trackOnboardingStepCompleted(2, "ACTIVITY", selected, 0);
+    
+    const timeOnStep = Math.round((Date.now() - startTime) / 1000);
+    trackOnboardingStepCompleted(2, "ACTIVITY", selected, timeOnStep);
+    
     router.push("/onboarding/dietary");
   };
 

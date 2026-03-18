@@ -12,12 +12,7 @@ interface InterventionModalProps {
   level: "GENTLE" | "MODERATE" | "URGENT";
   message: string;
   suggestedAction: string;
-  venue: {
-    id: string;
-    name: string;
-    photo?: string;
-    category: string;
-  };
+  venue: { id: string, name: string, photo?: string, category: string } | null;
 }
 
 function triggerHaptic(style: "light" | "medium" | "heavy" = "medium") {
@@ -160,7 +155,7 @@ export function InterventionModal({
             </button>
 
             {/* Venue Photo */}
-            {venue.photo && (
+            {venue && venue.photo && (
               <div className="relative h-48 w-full overflow-hidden">
                 <img
                   src={venue.photo}
@@ -178,7 +173,7 @@ export function InterventionModal({
             )}
 
             {/* Content */}
-            <div className="px-6 pb-6" style={{ marginTop: venue.photo ? "-2rem" : "1rem" }}>
+            <div className="px-6 pb-6" style={{ marginTop: venue?.photo ? "-2rem" : "1rem" }}>
               {/* Icon */}
               <div className="flex justify-center mb-4">
                 <div 

@@ -10,11 +10,11 @@ import { DIETARY, LS_DIETARY, LS_USER_ID } from "@/lib/onboarding";
 export default function DietaryPage() {
   const router = useRouter();
   const [selected, setSelected] = useState<string[]>([]);
+  const [startTime] = useState(Date.now());
 
   useEffect(() => {
     if (localStorage.getItem(LS_USER_ID)) {
-      // router.replace("/recommendations");
-      router.replace("/");
+      router.replace("/tabs/home");
       return;
     }
     const saved = localStorage.getItem(LS_DIETARY);
@@ -31,8 +31,12 @@ export default function DietaryPage() {
 
   const handleNext = () => {
     if (!selected.length) return;
+    
     localStorage.setItem(LS_DIETARY, JSON.stringify(selected));
-    trackOnboardingStepCompleted(3, "DIETARY", selected, 0);
+    
+    const timeOnStep = Math.round((Date.now() - startTime) / 1000);
+    trackOnboardingStepCompleted(3, "DIETARY", selected, timeOnStep);
+    
     router.push("/onboarding/budget");
   };
 

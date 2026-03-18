@@ -63,7 +63,7 @@ export default function FinishPage() {
         </p>
 
         <button
-          // onClick={() => router.replace("/recommendations")}
+          onClick={() => router.replace("/tabs/home")}
           className="w-full font-semibold text-white transition-all active:scale-[0.98]"
           style={{
             height: "7dvh",

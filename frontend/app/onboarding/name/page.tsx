@@ -3,7 +3,7 @@
 import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { OnboardingHeader } from "../intro/[step]/page";
-import { trackOnboardingStarted, trackOnboardingStepCompleted } from "@/lib/analytics";
+import { trackOnboardingStepCompleted } from "@/lib/analytics";
 import { LS_USER_NAME, LS_USER_ID } from "@/lib/onboarding";
 import ReactMarkdown from "react-markdown";
 
@@ -12,6 +12,7 @@ export default function NamePage() {
   const [name, setName] = useState("");
   const [showPolicy, setShowPolicy] = useState(false);
   const [content, setContent] = useState("");
+  const [startTime] = useState(Date.now());
 
   useEffect(() => {
     fetch("/docs/PRIVACY_POLICY.md")
@@ -21,19 +22,24 @@ export default function NamePage() {
 
   useEffect(() => {
     if (localStorage.getItem(LS_USER_ID)) {
-      // router.replace("/recommendations");
-      router.replace("/");
+      router.replace("/tabs/home");
       return;
     }
-    trackOnboardingStarted();
     const saved = localStorage.getItem(LS_USER_NAME);
     if (saved) setName(saved);
   }, [router]);
 
   const handleNext = () => {
     if (!name.trim()) return;
-    localStorage.setItem(LS_USER_NAME, name.trim());
-    // trackOnboardingStepCompleted(1, "NAME", name.trim(), 0);
+    
+    const trimmedName = name.trim();
+    localStorage.setItem(LS_USER_NAME, trimmedName);
+
+    console.log("trimmed name: " + trimmedName + " stored: " + localStorage.getItem(LS_USER_NAME))
+    
+    const timeOnStep = Math.round((Date.now() - startTime) / 1000);
+    trackOnboardingStepCompleted(1, "NAME", trimmedName, timeOnStep);
+    
     router.push("/onboarding/activity");
   };
 
@@ -64,7 +70,7 @@ export default function NamePage() {
           type="text"
           value={name}
           onChange={e => {
-            let value = e.target.value.replace(/[^\p{L}]/gu, "").slice(0, 25);
+            const value = e.target.value.replace(/[^\p{L}]/gu, "").slice(0, 25);
             setName(value);
           }}
           onKeyDown={e => e.key === "Enter" && handleNext()}

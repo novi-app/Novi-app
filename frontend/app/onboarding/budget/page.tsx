@@ -4,73 +4,101 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { OnboardingHeader } from "../intro/[step]/page";
 import { trackOnboardingStepCompleted, trackOnboardingCompleted, identifyUser, getDeviceType } from "@/lib/analytics";
-import { BUDGET, LS_USER_ID, LS_USER_NAME, LS_ACTIVITY, LS_DIETARY, LS_BUDGET } from "@/lib/onboarding";
+import { BUDGET, LS_BUDGET, LS_USER_ID, LS_USER_NAME, LS_ACTIVITY, LS_DIETARY } from "@/lib/onboarding";
 
 
 export default function BudgetPage() {
   const router = useRouter();
-  const [selected, setSelected]       = useState<number | null>(null);
-  const [isSubmitting, setSubmitting] = useState(false);
-  const [startTime]                   = useState(Date.now());
+  const [selected, setSelected] = useState<number | null>(null);
+  const [isSubmitting, setIsSubmitting] = useState(false);
+  const [startTime] = useState(Date.now());
+  const [onboardingStartTime] = useState(() => {
+    const stored = sessionStorage.getItem("onboarding_start_time");
+    if (stored) return parseInt(stored);
+    const now = Date.now();
+    sessionStorage.setItem("onboarding_start_time", now.toString());
+    return now;
+  });
 
   useEffect(() => {
     if (localStorage.getItem(LS_USER_ID)) {
-      // router.replace("/recommendations");
-      router.push("/");
+      router.replace("/tabs/home");
       return;
     }
     const saved = localStorage.getItem(LS_BUDGET);
-    if (saved) setSelected(JSON.parse(saved));
+    if (saved) setSelected(parseInt(saved));
   }, [router]);
 
-  const handleSubmit = async () => {
+  const handleContinue = async () => {
     if (selected === null || isSubmitting) return;
-    setSubmitting(true);
 
-    localStorage.setItem(LS_BUDGET, JSON.stringify(selected));
-
+    setIsSubmitting(true);
+    localStorage.setItem(LS_BUDGET, selected.toString());
+    
     const timeOnStep = Math.round((Date.now() - startTime) / 1000);
     trackOnboardingStepCompleted(4, "BUDGET", selected, timeOnStep);
 
-    // const activity: string[] = JSON.parse(localStorage.getItem(LS_ACTIVITY) ?? "[]");
-    // const dietary: string[]  = JSON.parse(localStorage.getItem(LS_DIETARY)  ?? "[]");
-    // const name: string[] = JSON.parse(localStorage.getItem(LS_USER_NAME) ?? "[]");
+    try {
+      const savedName = localStorage.getItem(LS_USER_NAME);
+      const savedDietary = localStorage.getItem(LS_DIETARY);
+      const savedActivity = localStorage.getItem(LS_ACTIVITY);
 
-    // try {
-    //   const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/user/onboard`, {
-    //     method: "POST",
-    //     headers: { "Content-Type": "application/json" },
-    //     body: JSON.stringify({
-    //       username: name,
-    //       preferences: {
-    //         dietary,
-    //         budget:              selected,
-    //         activity_preference: activity,
-    //       },
-    //     }),
-    //   });
-    //   if (!response.ok) throw new Error("Onboarding failed");
-    //   const result = await response.json();
+      if (!savedName) {
+        alert("Missing name. Please restart onboarding.");
+        router.push("/onboarding/name");
+        return;
+      }
 
-    //   localStorage.setItem(LS_USER_ID, result.user_id);
+      const dietary = savedDietary ? JSON.parse(savedDietary) : [];
+      const activity = savedActivity ? JSON.parse(savedActivity) : [];
 
-    //   identifyUser(result.user_id, {
-    //     dietary,
-    //     budget:      selected,
-    //     activities:  activity,
-    //     signup_date: new Date().toISOString(),
-    //     device_type: getDeviceType(),
-    //   });
+      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/user/onboard`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({
+          username: savedName,
+          preferences: {
+            dietary,
+            budget: selected,
+            activity_preference: activity
+          }
+        })
+      });
 
-    //   const totalTime = Math.round((Date.now() - startTime) / 1000);
-    //   trackOnboardingCompleted(totalTime, dietary, selected, activity);
+      if (!response.ok) {
+        const errorData = await response.json();
+        console.error("Onboarding failed:", errorData);
+        throw new Error(errorData.detail || "Onboarding failed");
+      }
+
+      const data = await response.json();
+      localStorage.setItem(LS_USER_ID, data.user_id);
+
+      identifyUser(data.user_id, {
+        username: savedName,
+        dietary,
+        budget: selected,
+        activities: activity,
+        signup_date: new Date().toISOString(),
+        device_type: getDeviceType(),
+      });
+
+      const totalTime = Math.round((Date.now() - onboardingStartTime) / 1000);
+      trackOnboardingCompleted(totalTime, savedName, dietary, selected, activity);
+
+      sessionStorage.removeItem("onboarding_start_time");
+      localStorage.removeItem(LS_DIETARY);
+      localStorage.removeItem(LS_ACTIVITY);
+      localStorage.removeItem(LS_BUDGET);
 
       router.push("/onboarding/finish");
-    // } catch (err) {
-    //   console.error("Onboarding error:", err);
-    //   alert("Something went wrong. Please try again.");
-    //   setSubmitting(false);
-    // }
+
+    } catch (error) {
+      console.error("Error during onboarding:", error);
+      alert("Something went wrong. Please try again.");
+    } finally {
+      setIsSubmitting(false);
+    }
   };
 
   return (
@@ -119,12 +147,14 @@ export default function BudgetPage() {
                 >
                   {opt.symbol}
                 </p>
-                <p
-                  className="font-bold"
-                  style={{ fontSize: "clamp(14px, 4vw, 19px)", color: isSelected ? "#faf8f3" : "#0D4A4A" }}
-                >
-                  {opt.label}
-                </p>
+                <div>
+                  <p
+                    className="font-bold"
+                    style={{ fontSize: "clamp(14px, 4vw, 19px)", color: isSelected ? "#faf8f3" : "#0D4A4A" }}
+                  >
+                    {opt.label}
+                  </p>
+                </div>
               </button>
             );
           })}
@@ -133,7 +163,7 @@ export default function BudgetPage() {
 
       <div className="flex-shrink-0 px-6 max-w-md mx-auto w-full" style={{ paddingBottom: "5dvh", paddingTop: "2dvh" }}>
         <button
-          onClick={handleSubmit}
+          onClick={handleContinue}
           disabled={selected === null || isSubmitting}
           className="w-full flex items-center justify-center gap-2 font-semibold text-white transition-all active:scale-[0.98] disabled:opacity-50"
           style={{

@@ -112,7 +112,7 @@ export default function IntroStepPage() {
       <OnboardingHeader current={step - 1} onBack={() => router.back()} />
       <div
         className="relative overflow-hidden flex-shrink-0 rounded-2xl"
-        style={{ height: "44dvh" }}
+        style={{ height: "42dvh" }}
       >
         <Image
           src={screen.image}

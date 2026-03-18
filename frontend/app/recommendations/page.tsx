@@ -1,149 +1,76 @@
 "use client";
 
-import * as React from "react";
-import { useRouter } from "next/navigation";
-import { Container, Stack, Row } from "@/components/layout";
-import { Button } from "@/components/button"
-import { Select } from "@/components/select"
-import { VenueCard, VenueCardSkeleton } from "@/components/venueCard";
-import { InterventionModal } from "@/components/interventionModal";
-import { VenueDetailModal } from "@/components/venueDetailModal";
+import { useState, useEffect } from "react";
+import { useRouter, useSearchParams } from "next/navigation";
+import { getRecommendations, saveVenue, unsaveVenue, getUserProfile } from "@/lib/api";
+import {
+  trackDirectionsClicked,
+  trackRecommendationDetailsViewed,
+  trackFreezeDetected,
+  trackInterventionShown,
+  trackInterventionResponse,
+  trackRecommendationsViewed,
+} from "@/lib/analytics";
 import { useFreezeDetection } from "@/hooks/useFreezeDetection";
 import { useScrollDistance } from "@/hooks/useScrollDistance";
-import { trackRecommendationsViewed, trackRecommendationCardClicked, trackFilterChanged } from "@/lib/analytics";
-import { Logo } from "@/components/logo";
+import { InterventionModal } from "@/components/interventionModal";
+import { LS_USER_ID } from "@/lib/onboarding";
+import { Venue } from "@/lib/types";
+import VenueCard from "@/components/venueCard";
+import VenueDetailsModal from "@/components/venueDetailsModal";
+import { clearSelectionClicks } from "@/lib/freezeDetection";
 
-interface Venue {
-  venue_id: string;
-  name: string;
-  category: string;
-  location: { lat: number; lng: number };
-  address?: string;
-  distance_km: number;
-  rating?: number;
-  price_level?: number;
-  solo_score?: number;
-  solo_reason?: string;
-  pro_tip?: string;
-  combined_score?: number;
-}
-
-interface RecommendationsResponse {
-  recommendations: Venue[];
-  count: number;
-}
-
-/* ── Shared layout shell ── */
-function PageShell({
-  children,
-  onStartOver,
-}: {
-  children: React.ReactNode;
-  onStartOver: () => void;
-}) {
-  return (
-    <div className="min-h-screen bg-cream">
-      <div className="sticky top-0 z-10 bg-cream/90 backdrop-blur-sm border-b border-secondary/[0.06] px-6 py-4">
-        <div className="mx-auto max-w-6xl flex items-center justify-between">
-          <Logo size="md" />
-          <button
-            // onClick={onStartOver}
-            className="text-secondary/40 font-medium transition-colors hover:text-secondary/70"
-            style={{ fontSize: "20px", letterSpacing: "0.04em" }}
-          >
-            ⚙
-          </button>
-        </div>
-      </div>
-      {children}
-    </div>
-  );
-}
-
-/* ── Filter bar — shared across states ── */
-const CATEGORIES = [
-  { value: "any", label: "All categories" },
-  { value: "restaurant", label: "Restaurants" },
-  { value: "cafe", label: "Cafes" },
-  { value: "bar", label: "Bars" },
-  { value: "museum", label: "Museums" },
-  { value: "park", label: "Parks" },
-  { value: "shopping mall", label: "Shopping" },
-];
-
-function FilterBar({
-  selectedIntent,
-  onFilterChange,
-  onRefresh,
-  isLoading,
-}: {
-  selectedIntent: string;
-  onFilterChange: (v: string) => void;
-  onRefresh: () => void;
-  isLoading: boolean;
-}) {
-  return (
-    <div className="flex flex-row gap-3 items-center">
-      <div className="flex-1">
-        <Select
-          value={selectedIntent}
-          onChange={(e: any) => onFilterChange(e.target.value)}
-          size="md"
-        >
-          {CATEGORIES.map(c => (
-            <Select.Option key={c.value} value={c.value}>
-              {c.label}
-            </Select.Option>
-          ))}
-        </Select>
-      </div>
-      <button
-        onClick={onRefresh}
-        disabled={isLoading}
-        aria-label="Refresh recommendations"
-        className="shrink-0 flex items-center justify-center rounded-pill border border-secondary/12 text-secondary/50 hover:text-secondary/80 hover:bg-secondary/5 transition-all disabled:opacity-40"
-        style={{ width: "56px", height: "56px" }}
-      >
-        <svg
-          width="18" height="18" viewBox="0 0 24 24"
-          fill="none" stroke="currentColor"
-          strokeWidth="1.8" strokeLinecap="round" strokeLinejoin="round"
-          className={isLoading ? "animate-spin" : ""}
-        >
-          <path d="M3 12a9 9 0 0 1 15-6.7L21 8" />
-          <path d="M21 12a9 9 0 0 1-15 6.7L3 16" />
-          <path d="M21 3v5h-5" />
-          <path d="M3 21v-5h5" />
-        </svg>
-      </button>
-    </div>
-  );
-}
+const ACTIVITY_LABELS: Record<string, string> = {
+  food: "Where to eat",
+  social: "Where to socialize",
+  explore: "Where to explore",
+  any: "Recommendations for you",
+};
 
 export default function RecommendationsPage() {
   const router = useRouter();
+  const searchParams = useSearchParams();
+  
+  const [venues, setVenues] = useState<Venue[]>([]);
+  const [savedVenueIds, setSavedVenueIds] = useState<Set<string>>(new Set());
+  const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
+  const [isLoading, setIsLoading] = useState(true);
+  const [error, setError] = useState<string | null>(null);
+  const [showAll, setShowAll] = useState(false);
 
-  const [userId, setUserId] = React.useState<string | null>(null);
-  const [recommendations, setRecommendations] = React.useState<Venue[]>([]);
-  const [isLoading, setIsLoading] = React.useState(true);
-  const [error, setError] = React.useState<string | null>(null);
-  const [selectedIntent, setSelectedIntent] = React.useState("any");
+  const [showIntervention, setShowIntervention] = useState(false);
+  const [interventionData, setInterventionData] = useState<any>(null);
+  const [interventionStartTime, setInterventionStartTime] = useState(0);
+  const [dismissalCount, setDismissalCount] = useState(0);
+  const [hasTrackedView, setHasTrackedView] = useState(false);
 
-  const userLocation = { lat: 35.6595, lng: 139.7004 }; // Shibuya, Tokyo
-
-  const [filterChangeCount, setFilterChangeCount] = React.useState(0);
-  const [previousFilter, setPreviousFilter] = React.useState("any");
-
-  const [showIntervention, setShowIntervention] = React.useState(false);
-  const [interventionData, setInterventionData] = React.useState<any>(null);
-  const [selectedVenue, setSelectedVenue] = React.useState<Venue | null>(null);
-
+  const activity = searchParams.get("activity") || "any";
+  const vibe = searchParams.get("vibe");
+  const lat = parseFloat(searchParams.get("lat") || "35.6595");
+  const lng = parseFloat(searchParams.get("lng") || "139.7004");
 
   const freezeDetection = useFreezeDetection({
     enabled: true,
-    recommendations,
+    recommendations: venues,
     onFreeze: async (event) => {
+      const userId = localStorage.getItem(LS_USER_ID);
+      if (!userId) return;
+
+      console.log("🔥 FREEZE EVENT:", event);
+
+      trackFreezeDetected(event.rule, event.level, event.context);
+
       try {
+        // Determine recommended venue BEFORE API call
+        const recommendedVenue = event.context.venue_id
+          ? venues.find(v => v.venue_id === event.context.venue_id)
+          : venues[0];
+        
+        if (!recommendedVenue) {
+          console.error("No venue found for intervention");
+          return;
+        }
+
         const response = await fetch(
           `${process.env.NEXT_PUBLIC_API_URL}/api/intervention`,
           {
@@ -152,21 +79,47 @@ export default function RecommendationsPage() {
             body: JSON.stringify({
               user_id: userId,
               trigger_type: event.rule,
-              context: event.context,
+              context: {
+                ...event.context,
+                venue_name: recommendedVenue.name,  // Add venue name for backend
+              },
             }),
           }
         );
 
-        if (response.ok) {
-          const data = await response.json();
-          setInterventionData({
-            level: event.level,
-            message: data.message,
-            suggestedAction: data.suggested_action,
-            venue: event.context.selected_venue,
-          });
-          setShowIntervention(true);
+        if (!response.ok) {
+          console.error("Intervention API error:", response.status);
+          return;
         }
+
+        const data = await response.json();
+        console.log("💬 Intervention response:", data);
+
+        const newInterventionData = {
+          level: event.level,
+          message: data.message,
+          venue: {
+            id: recommendedVenue.venue_id,
+            name: recommendedVenue.name,
+            photo: recommendedVenue.photo,
+            category: recommendedVenue.category,
+          },
+          triggerRule: event.rule,
+        };
+        
+        console.log("✅ Setting intervention data:", newInterventionData);
+        
+        setInterventionData(newInterventionData);
+        setInterventionStartTime(Date.now());
+        setShowIntervention(true);
+
+        trackInterventionShown(
+          event.level,
+          event.rule,
+          recommendedVenue.venue_id,
+          recommendedVenue.name,
+          0
+        );
       } catch (error) {
         console.error("Failed to fetch intervention:", error);
       }
@@ -179,262 +132,293 @@ export default function RecommendationsPage() {
     },
   });
 
-  React.useEffect(() => {
-    const storedUserId = localStorage.getItem("novi_user_id");
-    if (!storedUserId) {
-      router.push("/onboarding");
-      return;
-    }
-    setUserId(storedUserId);
-  }, [router]);
+  useEffect(() => {
+    loadRecommendations();
+    loadSavedVenues();
+  }, []);
 
-  React.useEffect(() => {
-    if (!isLoading && recommendations.length > 0) {
-      trackRecommendationsViewed(recommendations.length, selectedIntent, userLocation);
+  useEffect(() => {
+    if (!isLoading && venues.length > 0 && !hasTrackedView) {
+      console.log("📊 Tracking recommendations viewed:", venues.length);
+      trackRecommendationsViewed(venues.length, activity, { lat, lng });
+      setHasTrackedView(true);
+      
+      // Clear selection clicks - user successfully made it to recommendations
+      clearSelectionClicks();
     }
-  }, [isLoading, recommendations, selectedIntent]);
+  }, [isLoading, venues, activity, lat, lng, hasTrackedView]);
 
-  React.useEffect(() => {
-    if (!userId) return;
-    const fetchRecommendations = async () => {
-      setIsLoading(true);
-      setError(null);
-      try {
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/recommendations`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              user_id: userId,
-              location: userLocation,
-              intent: selectedIntent,
-            }),
-          }
-        );
-        if (!response.ok) throw new Error("Failed to fetch recommendations");
-        const data: RecommendationsResponse = await response.json();
-        setRecommendations(data.recommendations);
-      } catch (err) {
-        setError(err instanceof Error ? err.message : "Something went wrong");
-      } finally {
-        setIsLoading(false);
+  const loadRecommendations = async () => {
+    setIsLoading(true);
+    setError(null);
+
+    try {
+      const userId = localStorage.getItem(LS_USER_ID);
+      if (!userId) {
+        router.replace("/onboarding/intro/1");
+        return;
       }
-    };
-    fetchRecommendations();
-  }, [userId, selectedIntent]);
 
-  const handleFilterChange = (newIntent: string) => {
-    trackFilterChanged(previousFilter, newIntent, filterChangeCount + 1);
-    freezeDetection.recordFilterChange(newIntent);
-    setPreviousFilter(selectedIntent);
-    setFilterChangeCount(c => c + 1);
-    setSelectedIntent(newIntent);
+      const sessionPreferences = vibe ? { vibe: [vibe] } : undefined;
+
+      const result = await getRecommendations(
+        userId,
+        { lat, lng },
+        activity,
+        sessionPreferences
+      );
+
+      if (result.recommendations.length === 0) {
+        setError("No venues found. Try adjusting your preferences.");
+      } else {
+        setVenues(result.recommendations);
+      }
+    } catch (err: any) {
+      console.error("Failed to load recommendations:", err);
+      setError(err.message || "Failed to load recommendations. Please try again.");
+    } finally {
+      setIsLoading(false);
+    }
   };
 
-  const handleViewDetails = (venueId: string) => {
-    const venue = recommendations.find(v => v.venue_id === venueId);
-    if (!venue) return;
-    const cardPosition = recommendations.findIndex(v => v.venue_id === venueId) + 1;
-    trackRecommendationCardClicked(
-      venue.venue_id, venue.name, venue.category,
-      cardPosition, venue.combined_score || 0, venue.distance_km
+  const loadSavedVenues = async () => {
+    try {
+      const userId = localStorage.getItem(LS_USER_ID);
+      if (!userId) return;
+
+      const profile = await getUserProfile(userId);
+      setSavedVenueIds(new Set(profile.saved_venues));
+    } catch (err) {
+      console.error("Failed to load saved venues:", err);
+    }
+  };
+
+  const handleSaveToggle = async (venue: Venue) => {
+    const userId = localStorage.getItem(LS_USER_ID);
+    if (!userId) return;
+
+    const isSaved = savedVenueIds.has(venue.venue_id);
+
+    const newSaved = new Set(savedVenueIds);
+    if (isSaved) {
+      newSaved.delete(venue.venue_id);
+    } else {
+      newSaved.add(venue.venue_id);
+    }
+    setSavedVenueIds(newSaved);
+
+    try {
+      if (isSaved) {
+        await unsaveVenue(userId, venue.venue_id);
+      } else {
+        await saveVenue(userId, venue.venue_id);
+      }
+    } catch (err) {
+      setSavedVenueIds(savedVenueIds);
+      console.error("Failed to toggle save:", err);
+      alert("Failed to save venue. Please try again.");
+    }
+  };
+
+  const handleDetails = (venue: Venue, position: number) => {
+    console.log("🔍 Opening details for:", venue.name);
+    
+    // Track for freeze detection
+    freezeDetection.recordDetailsView(venue.venue_id);
+    
+    // Track for analytics
+    trackRecommendationDetailsViewed(
+      venue.venue_id,
+      venue.name,
+      venue.category,
+      position,
+      venue.combined_score,
+      venue.distance_km
     );
-    freezeDetection.recordCardClick(venueId);
+    
+    // Open modal
     setSelectedVenue(venue);
   };
 
-  const handleRefresh = () => {
-    setSelectedIntent("any");
-    if (userId) setIsLoading(true);
-  };
-
-  const handleStartOver = () => {
-    localStorage.removeItem("novi_user_id");
-    router.push("/onboarding");
+  const handleDirections = (venue: Venue) => {
+    trackDirectionsClicked(
+      venue.venue_id,
+      venue.name,
+      venue.category,
+      venue.distance_km
+    );
+    
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${venue.location.lat},${venue.location.lng}`;
+    window.open(url, "_blank");
   };
 
   const handleInterventionAccept = () => {
     if (!interventionData?.venue) return;
 
-    const venue = recommendations.find(v => v.venue_id === interventionData.venue.id);
-    if (!venue) return;
+    const timeToRespond = Math.round((Date.now() - interventionStartTime) / 1000);
 
-    // Track acceptance
-    // trackInterventionResponse("intervention_accepted", interventionData.level, /* ... */);
+    trackInterventionResponse(
+      interventionData.level,
+      "accepted",
+      timeToRespond,
+      dismissalCount
+    );
 
-    // Open directions
-    const url = `https://www.google.com/maps/dir/?api=1&destination=${venue.location.lat},${venue.location.lng}`;
-    window.open(url, "_blank");
+    const venue = venues.find(v => v.venue_id === interventionData.venue.id);
+    if (venue) {
+      const url = `https://www.google.com/maps/dir/?api=1&destination=${venue.location.lat},${venue.location.lng}`;
+      window.open(url, "_blank");
+    }
 
     setShowIntervention(false);
   };
 
   const handleInterventionDismiss = () => {
-    // trackInterventionResponse("intervention_dismissed", interventionData.level, /* ... */);
+    const timeToRespond = Math.round((Date.now() - interventionStartTime) / 1000);
+
+    trackInterventionResponse(
+      interventionData.level,
+      "dismissed",
+      timeToRespond,
+      dismissalCount
+    );
+
     freezeDetection.dismissIntervention();
+    setDismissalCount((count) => count + 1);
     setShowIntervention(false);
   };
 
-  /* ── Loading ── */
-  if (isLoading && !recommendations.length) {
+  const topVenue = venues[0];
+  const alternatives = venues.slice(1, 3);
+  const moreOptions = venues.slice(3);
+
+  if (isLoading) {
     return (
-      <PageShell onStartOver={handleStartOver}>
-        <Container size="lg" className="py-10">
-          <Stack gap="lg">
-            <div className="space-y-3">
-              <div className="h-9 bg-secondary/8 rounded-2xl w-48 animate-pulse" />
-              <div className="h-5 bg-secondary/6 rounded-xl w-64 animate-pulse" />
-            </div>
-            <div className="h-14 bg-secondary/8 rounded-pill animate-pulse" />
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              <VenueCardSkeleton />
-              <VenueCardSkeleton />
-              <VenueCardSkeleton />
-            </div>
-          </Stack>
-        </Container>
-      </PageShell>
+      <div className="min-h-screen bg-cream flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-secondary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-600 font-medium">Finding the perfect spots...</p>
+        </div>
+      </div>
     );
   }
 
-  /* ── Error ── */
   if (error) {
     return (
-      <PageShell onStartOver={handleStartOver}>
-        <div className="flex items-center justify-center min-h-[70vh] px-6">
-          <div className="text-center max-w-sm space-y-6">
-            <p
-              className="font-display font-medium text-secondary/12 leading-none select-none"
-              style={{ fontSize: "clamp(80px, 20vw, 120px)", letterSpacing: "-0.04em" }}
-            >
-              oh.
-            </p>
-            <div className="space-y-2">
-              <h1
-                className="font-display font-medium text-secondary tracking-tight"
-                style={{ fontSize: "clamp(20px, 5vw, 26px)" }}
-              >
-                Something went wrong
-              </h1>
-              <p className="text-secondary/45 text-sm leading-relaxed">{error}</p>
-            </div>
-            <Row gap="sm" justify="center">
-              <Button variant="primary" onClick={handleRefresh}>Try again</Button>
-              <Button variant="ghost" onClick={handleStartOver}>Start over</Button>
-            </Row>
-          </div>
+      <div className="min-h-screen bg-cream flex items-center justify-center px-6">
+        <div className="text-center max-w-sm">
+          <p className="text-gray-900 font-semibold mb-4">{error}</p>
+          <button
+            onClick={() => router.back()}
+            className="px-6 py-3 bg-secondary text-white rounded-xl font-semibold"
+          >
+            Go back
+          </button>
         </div>
-      </PageShell>
+      </div>
     );
   }
 
-  /* ── Empty ── */
-  if (!isLoading && recommendations.length === 0) {
-    return (
-      <PageShell onStartOver={handleStartOver}>
-        <Container size="md" className="py-10">
-          <Stack gap="lg">
-            <FilterBar
-              selectedIntent={selectedIntent}
-              onFilterChange={handleFilterChange}
-              onRefresh={handleRefresh}
-              isLoading={isLoading}
-            />
-            <div className="text-center py-20 space-y-6">
-              <p
-                className="font-display font-medium text-secondary/10 leading-none select-none"
-                style={{ fontSize: "clamp(80px, 20vw, 120px)", letterSpacing: "-0.04em" }}
-              >
-                hmm.
-              </p>
-              <div className="space-y-2">
-                <h2
-                  className="font-display font-medium text-secondary tracking-tight"
-                  style={{ fontSize: "clamp(20px, 5vw, 26px)" }}
-                >
-                  Nothing here yet
-                </h2>
-                <p className="text-secondary/45 text-sm leading-relaxed max-w-xs mx-auto">
-                  We couldn't find venues matching your preferences nearby.
-                  Try a different category or broaden your search.
-                </p>
-              </div>
-              <Row gap="sm" justify="center">
-                <Button variant="primary" onClick={() => handleFilterChange("any")}>
-                  View all categories
-                </Button>
-                <Button variant="ghost">
-                  Update preferences
-                </Button>
-              </Row>
-            </div>
-          </Stack>
-        </Container>
-      </PageShell>
-    );
-  }
-
-  /* ── Success ── */
   return (
-    <PageShell onStartOver={handleStartOver}>
-      <Container size="lg" className="py-4">
-        <Stack gap="lg">
+    <div className="min-h-screen bg-cream pb-6">
+      <div
+        className="bg-secondary px-6 text-white pb-6"
+        style={{ paddingTop: "max(env(safe-area-inset-top), 2rem)" }}
+      >
+        <div className="max-w-md mx-auto flex items-center justify-between">
+          <button
+            onClick={() => router.back()}
+            className="w-10 h-10 flex items-center justify-center rounded-full bg-white bg-opacity-20"
+          >
+            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+            </svg>
+          </button>
+          <h1 className="text-xl font-bold">{ACTIVITY_LABELS[activity]}</h1>
+          <button className="flex items-center gap-1 px-3 py-1.5 bg-white bg-opacity-20 rounded-full">
+            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+            </svg>
+            <span className="text-sm font-medium">Tokyo</span>
+          </button>
+        </div>
+      </div>
 
-          <div>
-            <h1
-              className="font-display font-bold text-primary leading-tight tracking-tight text-center"
-              style={{ fontSize: "clamp(30px, 8vw, 40px)", letterSpacing: "-0.02em" }}
-            >
-              Your Tokyo, ready.
-            </h1>
-            <p className="text-secondary/45 mt-1 text-sm text-center">
-              {recommendations.length}{" "}
-              {recommendations.length === 1 ? "place" : "places"} curated for you
-            </p>
+      <div className="px-6 max-w-md mx-auto">
+        {topVenue && (
+          <div className="mb-6">
+            <h2 className="text-lg font-bold text-gray-900 mb-3">
+              Best matched for you
+            </h2>
+            <VenueCard
+              venue={topVenue}
+              size="large"
+              saved={savedVenueIds.has(topVenue.venue_id)}
+              onSaveToggle={() => handleSaveToggle(topVenue)}
+              onDetails={() => handleDetails(topVenue, 0)}
+              onDirections={() => handleDirections(topVenue)}
+            />
           </div>
+        )}
 
-          <FilterBar
-            selectedIntent={selectedIntent}
-            onFilterChange={handleFilterChange}
-            onRefresh={handleRefresh}
-            isLoading={isLoading}
-          />
-
-          {isLoading ? (
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              <VenueCardSkeleton />
-              <VenueCardSkeleton />
-              <VenueCardSkeleton />
-            </div>
-          ) : (
-            <div className="grid gap-5 sm:grid-cols-2 lg:grid-cols-3">
-              {recommendations.map((venue, index) => (
+        {alternatives.length > 0 && (
+          <div className="mb-6">
+            <h2 className="text-lg font-bold text-gray-900 mb-3">
+              Two other alternatives
+            </h2>
+            <div className="space-y-3">
+              {alternatives.map((venue, index) => (
                 <VenueCard
                   key={venue.venue_id}
                   venue={venue}
-                  cardPosition={index + 1}
-                  onViewDetails={handleViewDetails}
-                  onCardView={freezeDetection.recordCardView}
+                  size="small"
+                  saved={savedVenueIds.has(venue.venue_id)}
+                  onSaveToggle={() => handleSaveToggle(venue)}
+                  onDetails={() => handleDetails(venue, index + 1)}
+                  onDirections={() => handleDirections(venue)}
                 />
               ))}
             </div>
-          )}
-
-          <div className="pt-6 border-t border-secondary/[0.06] text-center">
-            <p className="text-secondary/35 text-xs mb-3">
-              Not finding what you're looking for?
-            </p>
-            <button
-              // onClick={handleStartOver}
-              className="text-secondary/50 text-sm font-medium hover:text-secondary/80 transition-colors"
-            >
-              Update your preferences
-            </button>
           </div>
+        )}
 
-        </Stack>
-      </Container>
+        {moreOptions.length > 0 && !showAll && (
+          <button
+            onClick={() => setShowAll(true)}
+            className="w-full py-4 border-2 border-orange-500 text-orange-500 font-semibold rounded-xl active:scale-[0.98] transition-transform flex items-center justify-center gap-2"
+          >
+            Show me more options
+            <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
+            </svg>
+          </button>
+        )}
+
+        {showAll && moreOptions.length > 0 && (
+          <div className="space-y-3 animate-fadeIn">
+            {moreOptions.map((venue, index) => (
+              <VenueCard
+                key={venue.venue_id}
+                venue={venue}
+                size="small"
+                saved={savedVenueIds.has(venue.venue_id)}
+                onSaveToggle={() => handleSaveToggle(venue)}
+                onDetails={() => handleDetails(venue, index + 3)}
+                onDirections={() => handleDirections(venue)}
+              />
+            ))}
+          </div>
+        )}
+      </div>
+
+      {selectedVenue && (
+        <VenueDetailsModal
+          venue={selectedVenue}
+          onClose={() => setSelectedVenue(null)}
+          onDirections={() => handleDirections(selectedVenue)}
+        />
+      )}
 
       {interventionData && (
         <InterventionModal
@@ -443,17 +427,26 @@ export default function RecommendationsPage() {
           onAccept={handleInterventionAccept}
           level={interventionData.level}
           message={interventionData.message}
-          suggestedAction={interventionData.suggestedAction}
+          suggestedAction="Let's Go"
           venue={interventionData.venue}
         />
       )}
 
-      <VenueDetailModal
-        isOpen={!!selectedVenue}
-        onClose={() => setSelectedVenue(null)}
-        venue={selectedVenue}
-      />
-
-    </PageShell>
+      <style jsx>{`
+        @keyframes fadeIn {
+          from {
+            opacity: 0;
+            transform: translateY(10px);
+          }
+          to {
+            opacity: 1;
+            transform: translateY(0);
+          }
+        }
+        .animate-fadeIn {
+          animation: fadeIn 0.3s ease-out;
+        }
+      `}</style>
+    </div>
   );
 }
