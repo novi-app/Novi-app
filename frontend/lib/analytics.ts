@@ -171,7 +171,7 @@ export const trackOnboardingCompleted = (
 export const trackRecommendationsViewed = (
   count: number,
   activityFilter: string,
-  userLocation: { lat: number; lng: number }
+  userLocation: { latitude: number; longitude: number }
 ) => 
   trackEvent("recommendations_viewed", {
     recommendation_count: count,

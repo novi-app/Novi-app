@@ -33,7 +33,7 @@ async function fetchAPI<T>(endpoint: string, options: RequestInit = {}): Promise
 
 export async function getRecommendations(
   userId: string,
-  location: { lat: number; lng: number },
+  location: { latitude: number; longitude: number },
   activity: string = "any",
   sessionPreferences?: SessionPreferences
 ): Promise<{ recommendations: Venue[]; count: number }> {

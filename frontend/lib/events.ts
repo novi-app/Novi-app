@@ -77,7 +77,7 @@ export interface OnboardingAbandonedProperties extends BaseEventProperties {
 export interface RecommendationsViewedProperties extends BaseEventProperties {
   recommendation_count: number;
   activity_filter: string;
-  user_location: { lat: number; lng: number };
+  user_location: { latitude: number; longitude: number };
 }
 
 export interface RecommendationCardClickedProperties extends BaseEventProperties {
