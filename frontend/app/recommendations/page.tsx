@@ -1,16 +1,9 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getRecommendations, saveVenue, unsaveVenue, getUserProfile } from "@/lib/api";
-import {
-  trackDirectionsClicked,
-  trackRecommendationDetailsViewed,
-  trackFreezeDetected,
-  trackInterventionShown,
-  trackInterventionResponse,
-  trackRecommendationsViewed,
-} from "@/lib/analytics";
+import { trackDirectionsClicked, trackRecommendationDetailsViewed, trackFreezeDetected, trackInterventionShown, trackInterventionResponse, trackRecommendationsViewed } from "@/lib/analytics";
 import { useFreezeDetection } from "@/hooks/useFreezeDetection";
 import { useScrollDistance } from "@/hooks/useScrollDistance";
 import { InterventionModal } from "@/components/interventionModal";
@@ -27,7 +20,7 @@ const ACTIVITY_LABELS: Record<string, string> = {
   any: "Recommendations for you",
 };
 
-export default function RecommendationsPage() {
+function Page () {
   const router = useRouter();
   const searchParams = useSearchParams();
   
@@ -448,5 +441,20 @@ export default function RecommendationsPage() {
         }
       `}</style>
     </div>
+  );
+}
+
+export default function RecommendationsPage() {
+  return (
+    <Suspense fallback={
+      <div className="min-h-screen bg-cream flex items-center justify-center">
+        <div className="text-center">
+          <div className="w-12 h-12 border-4 border-secondary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <p className="text-gray-600 font-medium">Finding the perfect spots...</p>
+        </div>
+      </div>
+    }>
+      <Page />
+    </Suspense>
   );
 }
