@@ -1,6 +1,7 @@
 import numpy as np
 from typing import List, Dict, Any, Optional
 from math import radians, sin, cos, sqrt, atan2
+from google.cloud.firestore_v1 import Query
 from app.utils.firebase_client import get_db, get_user
 from app.services.embedding_service import generate_session_embedding, generate_user_embedding
 
@@ -145,15 +146,19 @@ def get_trending_venues(limit: int = 10) -> List[Dict[str, Any]]:
     
     venues = db.collection("venues") \
         .where("rating", ">=", 4.5) \
-        .where("reviews_count", ">=", 1000) \
-        .order_by("rating", direction=db.DESCENDING) \
+        .order_by("rating", direction=Query.DESCENDING) \
         .limit(limit) \
         .stream()
     
     results = []
     for doc in venues:
         venue_data = doc.to_dict()
-        venue_data["venue_id"] = doc.id
-        results.append(venue_data)
+
+        if venue_data.get("reviews_count", 0) >= 1000:
+            venue_data["venue_id"] = doc.id
+            results.append(venue_data)
+            
+            if len(results) >= limit:
+                break
     
     return results
