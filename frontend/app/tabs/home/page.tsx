@@ -339,7 +339,7 @@ export default function HomePage() {
                   onClick={() => handleTrendingClick(venue)}
                   onDirections={() => {
                     window.open(
-                      `https://www.google.com/maps/dir/?api=1&destination=${venue.location.lat},${venue.location.lng}`,
+                      `https://www.google.com/maps/dir/?api=1&destination=${venue.location.latitude},${venue.location.longitude}`,
                       "_blank"
                     );
                   }}

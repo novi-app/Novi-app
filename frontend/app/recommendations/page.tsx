@@ -46,8 +46,8 @@ export default function RecommendationsPage() {
 
   const activity = searchParams.get("activity") || "any";
   const vibe = searchParams.get("vibe");
-  const lat = parseFloat(searchParams.get("lat") || "35.6595");
-  const lng = parseFloat(searchParams.get("lng") || "139.7004");
+  const latitude = parseFloat(searchParams.get("latitude") || "35.6595");
+  const longitude = parseFloat(searchParams.get("longitude") || "139.7004");
 
   const freezeDetection = useFreezeDetection({
     enabled: true,
@@ -140,13 +140,13 @@ export default function RecommendationsPage() {
   useEffect(() => {
     if (!isLoading && venues.length > 0 && !hasTrackedView) {
       console.log("📊 Tracking recommendations viewed:", venues.length);
-      trackRecommendationsViewed(venues.length, activity, { lat, lng });
+      trackRecommendationsViewed(venues.length, activity, { latitude, longitude });
       setHasTrackedView(true);
       
       // Clear selection clicks - user successfully made it to recommendations
       clearSelectionClicks();
     }
-  }, [isLoading, venues, activity, lat, lng, hasTrackedView]);
+  }, [isLoading, venues, activity, latitude, longitude, hasTrackedView]);
 
   const loadRecommendations = async () => {
     setIsLoading(true);
@@ -163,7 +163,7 @@ export default function RecommendationsPage() {
 
       const result = await getRecommendations(
         userId,
-        { lat, lng },
+        { latitude, longitude },
         activity,
         sessionPreferences
       );
