@@ -27,9 +27,6 @@ async function initFirebase() {
   return firebaseAnalytics;
 }
 
-/**
- * Initialize Mixpanel
- */
 function initMixpanel() {
   if (mixpanelInitialized) return;
   if (typeof window === "undefined") return;
@@ -44,7 +41,7 @@ function initMixpanel() {
     mixpanel.init(token, {
       track_pageview: false,
       persistence: "localStorage",
-      ignore_dnt: false, // Respect Do Not Track
+      ignore_dnt: false,
     });
     mixpanelInitialized = true;
     console.log("Mixpanel initialized");
@@ -53,15 +50,11 @@ function initMixpanel() {
   }
 }
 
-/**
- * Initialize both analytics systems
- */
 async function initAnalytics() {
   await initFirebase();
   initMixpanel();
 }
 
-// Auto-initialize on import
 if (typeof window !== "undefined") {
   initAnalytics();
 }
@@ -97,9 +90,7 @@ function getBrowser(): string {
   if (ua.includes("Edge")) return "Edge";
   return "Other";
 }
-/**
- * Track event to both Firebase Analytics and Mixpanel
- */
+
 export async function trackEvent<T extends EventName>(
   eventName: T,
   properties?: Omit<EventProperties<T>, keyof BaseEventProperties>
@@ -112,12 +103,10 @@ export async function trackEvent<T extends EventName>(
       ...properties,
     };
     
-    // Send to Firebase Analytics
     if (firebaseAnalytics || (await initFirebase())) {
       logEvent(firebaseAnalytics!, eventName, fullProperties);
     }
     
-    // Send to Mixpanel
     if (mixpanelInitialized) {
       mixpanel.track(eventName, fullProperties);
     }
@@ -136,10 +125,13 @@ export function identifyUser(userId: string, properties?: Record<string, any>) {
     mixpanel.identify(userId);
     
     if (properties) {
-      mixpanel.people.set(properties);
+      mixpanel.people.set({
+        ...properties,
+        $name: properties.username || properties.name,
+        last_seen: new Date().toISOString(),
+      });
     }
     
-    console.log(`User identified: ${userId}`);
   } catch (error) {
     console.error("Failed to identify user:", error);
   }
@@ -151,7 +143,7 @@ export const trackOnboardingStarted = () =>
 export const trackOnboardingStepCompleted = (
   stepNumber: number,
   stepName: StepName,
-  selections: string[] | number,
+  selections: string | string[] | number,
   timeOnStepSeconds: number
 ) => 
   trackEvent("onboarding_step_completed", {
@@ -163,11 +155,13 @@ export const trackOnboardingStepCompleted = (
 
 export const trackOnboardingCompleted = (
   totalTimeSeconds: number,
+  username: string,
   dietarySelections: string[],
   budgetLevel: number,
   activitySelections: string[]
 ) => 
   trackEvent("onboarding_completed", {
+    username,
     total_time_seconds: totalTimeSeconds,
     dietary_selections: dietarySelections,
     budget_level: budgetLevel,
@@ -176,12 +170,12 @@ export const trackOnboardingCompleted = (
 
 export const trackRecommendationsViewed = (
   count: number,
-  intentFilter: string,
+  activityFilter: string,
   userLocation: { lat: number; lng: number }
 ) => 
   trackEvent("recommendations_viewed", {
     recommendation_count: count,
-    intent_filter: intentFilter,
+    activity_filter: activityFilter,
     user_location: userLocation,
   });
 

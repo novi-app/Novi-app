@@ -1,32 +1,29 @@
 "use client";
 
-import { useEffect, useRef, useCallback } from "react";
-import { FreezeDetector, type FreezeEvent } from "@/lib/freezeDetection";
-import { trackFreezeDetected } from "@/lib/analytics";
+import { useEffect, useRef } from "react";
+import { FreezeDetector } from "@/lib/freezeDetection";
+import type { FreezeEvent } from "@/lib/freezeDetection";
 
 interface UseFreezeDetectionOptions {
-  enabled?: boolean;
-  onFreeze?: (event: FreezeEvent) => void;
-  recommendations?: any[];
+  enabled: boolean;
+  recommendations: any[];
+  onFreeze: (event: FreezeEvent) => void;
 }
 
-export function useFreezeDetection(options: UseFreezeDetectionOptions = {}) {
-  const { enabled = true, onFreeze, recommendations = [] } = options;
-
+export function useFreezeDetection({
+  enabled,
+  recommendations,
+  onFreeze,
+}: UseFreezeDetectionOptions) {
   const detectorRef = useRef<FreezeDetector | null>(null);
-  
   const onFreezeRef = useRef(onFreeze);
-  const recommendationsRef = useRef(recommendations);
 
+  // Update ref when onFreeze changes, but don't recreate detector
   useEffect(() => {
     onFreezeRef.current = onFreeze;
   }, [onFreeze]);
 
-  useEffect(() => {
-    recommendationsRef.current = recommendations;
-  }, [recommendations]);
-
-  // Initialize detector (only when enabled changes)
+  // Create detector once, never recreate
   useEffect(() => {
     if (!enabled) return;
 
@@ -40,87 +37,36 @@ export function useFreezeDetection(options: UseFreezeDetectionOptions = {}) {
         cooldownMs: 60000,
       },
       (event) => {
-        // Get latest recommendations from ref
-        const currentRecs = recommendationsRef.current;
-        const suggestedVenue = currentRecs.length > 0 
-          ? currentRecs[0] 
-          : null;
-
-        // Enhance context with venue info
-        const enhancedContext = {
-          ...event.context,
-          selected_venue: suggestedVenue ? {
-            id: suggestedVenue.venue_id,
-            name: suggestedVenue.name,
-            category: suggestedVenue.category,
-          } : null,
-        };
-
-        // Track to analytics
-        trackFreezeDetected(event.rule, event.level, enhancedContext);
-
-        // Call custom handler with enhanced context
-        if (onFreezeRef.current) {
-          onFreezeRef.current({
-            ...event,
-            context: enhancedContext,
-          });
-        }
-
-        // Dev-only logging
-        if (process.env.NODE_ENV === "development") {
-          console.log(
-            `Freeze detected: ${event.rule} (${event.level})`,
-            enhancedContext
-          );
-        }
+        // Use the ref to always call latest onFreeze
+        onFreezeRef.current(event);
       }
     );
 
     detectorRef.current = detector;
+    console.log("🎯 FreezeDetector created");
 
-    // Cleanup on unmount or when enabled changes
     return () => {
+      console.log("🗑️ FreezeDetector destroyed");
       detector.destroy();
       detectorRef.current = null;
     };
-  }, [enabled]);
-
-  // ===== Public API =====
-
-  const recordCardView = useCallback((venueId: string) => {
-    detectorRef.current?.recordEvent("card_view", { id: venueId });
-  }, []);
-
-  const recordCardClick = useCallback((venueId: string) => {
-    detectorRef.current?.recordEvent("card_click", { id: venueId });
-  }, []);
-
-  const recordScroll = useCallback(
-    (direction: "up" | "down", distance: number) => {
-      detectorRef.current?.recordEvent("scroll", { direction, distance });
-    },
-    []
-  );
-
-  const recordFilterChange = useCallback((filterValue: string) => {
-    detectorRef.current?.recordEvent("filter_change", { value: filterValue });
-  }, []);
-
-  const dismissIntervention = useCallback(() => {
-    detectorRef.current?.dismissIntervention();
-  }, []);
-
-  const resetDismissals = useCallback(() => {
-    detectorRef.current?.resetDismissals();
-  }, []);
+  }, [enabled]); // Only recreate if enabled changes
 
   return {
-    recordCardView,
-    recordCardClick,
-    recordScroll,
-    recordFilterChange,
-    dismissIntervention,
-    resetDismissals,
+    recordCardView: (venueId: string) => {
+      detectorRef.current?.recordCardView(venueId);
+    },
+    recordDetailsView: (venueId: string) => {
+      detectorRef.current?.recordDetailsView(venueId);
+    },
+    recordScroll: (direction: "up" | "down", distance: number) => {
+      detectorRef.current?.recordScroll(direction, distance);
+    },
+    dismissIntervention: () => {
+      detectorRef.current?.dismissIntervention();
+    },
+    resetDismissals: () => {
+      detectorRef.current?.resetDismissals();
+    },
   };
 }

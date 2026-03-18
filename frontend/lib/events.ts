@@ -35,9 +35,9 @@ export type EventName =
 export type FreezeRuleType =
   | "exploration_stall"
   | "scroll_indecision"
-  | "filter_cycling"
   | "card_reclicking"
-  | "full_inactivity";
+  | "selection_indecision"
+  | "tab_switching";
 
 export type InterventionLevel = "GENTLE" | "MODERATE" | "URGENT";
 
@@ -56,11 +56,12 @@ export interface BaseEventProperties {
 export interface OnboardingStepCompletedProperties extends BaseEventProperties {
   step_number: number;
   step_name: StepName;
-  selections: string[] | number; // Dietary/activity = array, budget = number
+  selections: string | string[] | number;
   time_on_step_seconds: number;
 }
 
 export interface OnboardingCompletedProperties extends BaseEventProperties {
+  username: string;
   total_time_seconds: number;
   dietary_selections: string[];
   budget_level: number;
@@ -75,7 +76,7 @@ export interface OnboardingAbandonedProperties extends BaseEventProperties {
 
 export interface RecommendationsViewedProperties extends BaseEventProperties {
   recommendation_count: number;
-  intent_filter: string;
+  activity_filter: string;
   user_location: { lat: number; lng: number };
 }
 
