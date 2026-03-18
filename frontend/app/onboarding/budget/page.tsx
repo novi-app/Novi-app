@@ -13,6 +13,7 @@ export default function BudgetPage() {
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [startTime] = useState(Date.now());
   const [onboardingStartTime] = useState(() => {
+    if (typeof window === "undefined") return Date.now();
     const stored = sessionStorage.getItem("onboarding_start_time");
     if (stored) return parseInt(stored);
     const now = Date.now();
