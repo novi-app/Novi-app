@@ -12,7 +12,7 @@ import VenueDetailsModal from "@/components/venueDetailsModal";
 import { trackSelectionClick, clearSelectionClicks } from "@/lib/freezeDetection";
 import { InterventionModal } from "@/components/interventionModal";
 
-const location = { lat: 35.6595, lng: 139.7004 };
+const location = { latitude: 35.6595, longitude: 139.7004 };
 
 const VIBES = ["Authentic", "Lively", "Quiet"];
 const MOODS = ["Quick", "Relaxed", "Spontaneous"];
@@ -73,7 +73,7 @@ export default function HomePage() {
     setIsLoading(true);
     try {
       trackRecommendationsViewed(0, "surprise_me", location);
-      router.push(`/recommendations?activity=any&lat=${location.lat}&lng=${location.lng}`);
+      router.push(`/recommendations?activity=any&lat=${location.latitude}&lng=${location.longitude}`);
     } finally {
       setIsLoading(false);
     }
@@ -110,7 +110,7 @@ export default function HomePage() {
     try {
       trackRecommendationsViewed(0, selectedActivity, location);
       router.push(
-        `/recommendations?activity=${selectedActivity}&vibe=${selectedVibe}&mood=${selectedMood}&lat=${location.lat}&lng=${location.lng}`
+        `/recommendations?activity=${selectedActivity}&vibe=${selectedVibe}&mood=${selectedMood}&lat=${location.latitude}&lng=${location.longitude}`
       );
     } finally {
       setIsLoading(false);
@@ -145,15 +145,15 @@ export default function HomePage() {
   };
 
   const handleDirections = (venue: Venue | TrendingVenue) => {
-    const lat = venue.location.lat;
-    const lng = venue.location.lng;
+    const lat = venue.location.latitude;
+    const lng = venue.location.longitude;
     window.open(`https://www.google.com/maps/dir/?api=1&destination=${lat},${lng}`, "_blank");
   };
 
   const handleInterventionAccept = () => {
     clearSelectionClicks();
     setShowIntervention(false);
-    router.push(`/recommendations?activity=any&lat=${location.lat}&lng=${location.lng}`);
+    router.push(`/recommendations?activity=any&lat=${location.latitude}&lng=${location.longitude}`);
   };
 
   const handleInterventionDismiss = () => {

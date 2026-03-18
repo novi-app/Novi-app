@@ -85,8 +85,8 @@ Get personalized venue recommendations.
 
 **Parameters:**
 - `user_id` (string, required) - User ID from onboarding
-- `location.lat` (float, required) - Latitude
-- `location.lng` (float, required) - Longitude
+- `location.latitude` (float, required) - Latitude
+- `location.longitude` (float, required) - Longitude
 - `intent` (string, required) - Category: "dinner", "lunch", "cafe", "bar", "attraction"
 
 **Response:**

@@ -54,7 +54,7 @@ export default function SavedPage() {
 
   const handleDirections = (venue: Venue) => {
     trackDirectionsClicked(venue.venue_id, venue.name, venue.category, venue.distance_km);
-    const url = `https://www.google.com/maps/dir/?api=1&destination=${venue.location.lat},${venue.location.lng}`;
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${venue.location.latitude},${venue.location.longitude}`;
     window.open(url, "_blank");
   };
 

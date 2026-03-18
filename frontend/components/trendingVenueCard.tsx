@@ -11,7 +11,7 @@ interface TrendingVenueCardProps {
   isSaved: boolean;
 }
 
-const USER_LOCATION = { lat: 35.6595, lng: 139.7004 };
+const USER_LOCATION = { latitude: 35.6595, longitude: 139.7004 };
 
 function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371;
@@ -27,7 +27,7 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): nu
 
 function walkMinutes(venue: TrendingVenue): number {
   const km = haversineKm(
-    USER_LOCATION.lat, USER_LOCATION.lng,
+    USER_LOCATION.latitude, USER_LOCATION.longitude,
     venue.location.latitude, venue.location.longitude
   );
   return Math.max(1, Math.round((km / 5) * 60));

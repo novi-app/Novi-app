@@ -248,7 +248,7 @@ export default function RecommendationsPage() {
       venue.distance_km
     );
     
-    const url = `https://www.google.com/maps/dir/?api=1&destination=${venue.location.lat},${venue.location.lng}`;
+    const url = `https://www.google.com/maps/dir/?api=1&destination=${venue.location.latitude},${venue.location.longitude}`;
     window.open(url, "_blank");
   };
 
@@ -266,7 +266,7 @@ export default function RecommendationsPage() {
 
     const venue = venues.find(v => v.venue_id === interventionData.venue.id);
     if (venue) {
-      const url = `https://www.google.com/maps/dir/?api=1&destination=${venue.location.lat},${venue.location.lng}`;
+      const url = `https://www.google.com/maps/dir/?api=1&destination=${venue.location.latitude},${venue.location.longitude}`;
       window.open(url, "_blank");
     }
 

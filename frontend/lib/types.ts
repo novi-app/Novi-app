@@ -4,8 +4,8 @@ export interface Venue {
   activity: "food" | "social" | "explore";
   category: string;
   location: {
-    lat: number;
-    lng: number;
+    latitude: number;
+    longitude: number;
   };
   address: string;
   distance_km: number;
@@ -30,8 +30,8 @@ export interface TrendingVenue {
   activity: string;
   category: string;
   location: {
-    lat: number;
-    lng: number;
+    latitude: number;
+    longitude: number;
   };
   address: string;
   rating: number;
@@ -66,8 +66,8 @@ export interface SessionPreferences {
   activity: "food" | "social" | "explore";
   category: string;
   location: {
-    lat: number;
-    lng: number;
+    latitude: number;
+    longitude: number;
   };
   address: string;
   distance_km: number;
@@ -92,8 +92,8 @@ export interface TrendingVenue {
   activity: string;
   category: string;
   location: {
-    lat: number;
-    lng: number;
+    latitude: number;
+    longitude: number;
   };
   address: string;
   rating: number;

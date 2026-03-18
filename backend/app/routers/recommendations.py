@@ -10,8 +10,8 @@ async def get_venue_recommendations(request: RecommendationRequest):
     try:
         recommendations = get_recommendations(
             user_id=request.user_id,
-            user_lat=request.location.lat,
-            user_lon=request.location.lng,
+            user_lat=request.location.latitude,
+            user_lon=request.location.longitude,
             session_preferences=request.session_preferences,
             activity=request.activity,
             radius_km=30.0,
