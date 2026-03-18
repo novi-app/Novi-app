@@ -1,65 +1,85 @@
-const API_URL = process.env.NEXT_PUBLIC_API_URL || 'http://localhost:8000';
+import type { Venue, TrendingVenue, UserProfile, UserPreferences, SessionPreferences } from "./types";
 
-// Define proper types
-interface UserPreferences {
-  dietary: string[];
-  budget: string;
-  vibes: string[];
-  travelStyle: string;
-}
+const API_URL = process.env.NEXT_PUBLIC_API_URL;
 
-interface Location {
-  lat: number;
-  lng: number;
-}
-
-interface AnalyticsEvent {
-  session_id: string;
-  timestamp: number;
-  event_type: string;
-  [key: string]: unknown; // Allow additional properties
-}
-
-export async function apiRequest(
-  endpoint: string,
-  options: RequestInit = {}
-) {
-  const url = `${API_URL}${endpoint}`;
-  
-  const response = await fetch(url, {
-    ...options,
-    headers: {
-      'Content-Type': 'application/json',
-      ...options.headers,
-    },
-  });
-
-  if (!response.ok) {
-    throw new Error(`API Error: ${response.statusText}`);
+class APIError extends Error {
+  constructor(public status: number, message: string) {
+    super(message);
+    this.name = "APIError";
   }
-
-  return response.json();
 }
 
-export const api = {
-  // User endpoints
-  onboardUser: (preferences: UserPreferences) =>
-    apiRequest('/api/user/onboard', {
-      method: 'POST',
-      body: JSON.stringify({ preferences }),
-    }),
+async function fetchAPI<T>(endpoint: string, options: RequestInit = {}): Promise<T> {
+  try {
+    const response = await fetch(`${API_URL}${endpoint}`, {
+      ...options,
+      headers: {
+        "Content-Type": "application/json",
+        ...options.headers,
+      },
+    });
 
-  // Recommendation endpoints
-  getRecommendations: (userId: string, location: Location, intent: string) =>
-    apiRequest('/api/recommendations', {
-      method: 'POST',
-      body: JSON.stringify({ user_id: userId, location, intent }),
-    }),
+    if (!response.ok) {
+      const error = await response.json().catch(() => ({ detail: "Request failed" }));
+      throw new APIError(response.status, error.detail || `HTTP ${response.status}`);
+    }
 
-  // Analytics endpoints
-  logEvent: (events: AnalyticsEvent[]) =>
-    apiRequest('/api/analytics/event', {
-      method: 'POST',
-      body: JSON.stringify({ events }),
+    return response.json();
+  } catch (error) {
+    if (error instanceof APIError) throw error;
+    throw new Error("Network error. Please check your connection.");
+  }
+}
+
+export async function getRecommendations(
+  userId: string,
+  location: { lat: number; lng: number },
+  activity: string = "any",
+  sessionPreferences?: SessionPreferences
+): Promise<{ recommendations: Venue[]; count: number }> {
+  return fetchAPI("/api/recommendations", {
+    method: "POST",
+    body: JSON.stringify({
+      user_id: userId,
+      location,
+      activity,
+      session_preferences: sessionPreferences,
     }),
-};
+  });
+}
+
+export async function getTrendingVenues(): Promise<{ venues: TrendingVenue[]; count: number }> {
+  return fetchAPI("/api/recommendations/trending");
+}
+
+export async function saveVenue(userId: string, venueId: string): Promise<void> {
+  await fetchAPI("/api/venues/save", {
+    method: "POST",
+    body: JSON.stringify({ user_id: userId, venue_id: venueId }),
+  });
+}
+
+export async function unsaveVenue(userId: string, venueId: string): Promise<void> {
+  await fetchAPI("/api/venues/save", {
+    method: "DELETE",
+    body: JSON.stringify({ user_id: userId, venue_id: venueId }),
+  });
+}
+
+export async function getSavedVenues(userId: string): Promise<{ venues: Venue[]; count: number }> {
+  return fetchAPI(`/api/venues/saved/${userId}`);
+}
+
+export async function getUserProfile(userId: string): Promise<UserProfile> {
+  return fetchAPI(`/api/user/${userId}`);
+}
+
+export async function updateUserPreferences(
+  userId: string,
+  preferences: Partial<UserPreferences>
+): Promise<{ status: string; preferences: UserPreferences }> {
+  return fetchAPI(`/api/user/${userId}/preferences`, {
+    method: "PATCH",
+    body: JSON.stringify(preferences),
+  });
+}
