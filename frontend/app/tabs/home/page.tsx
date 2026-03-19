@@ -73,7 +73,7 @@ export default function HomePage() {
     setIsLoading(true);
     try {
       trackRecommendationsViewed(0, "surprise_me", location);
-      router.push(`/recommendations?activity=any&lat=${location.latitude}&lng=${location.longitude}`);
+      router.push(`/recommendations?activity=any&latitude=${location.latitude}&longitude=${location.longitude}`);
     } finally {
       setIsLoading(false);
     }
@@ -110,7 +110,7 @@ export default function HomePage() {
     try {
       trackRecommendationsViewed(0, selectedActivity, location);
       router.push(
-        `/recommendations?activity=${selectedActivity}&vibe=${selectedVibe}&mood=${selectedMood}&lat=${location.latitude}&lng=${location.longitude}`
+        `/recommendations?activity=${selectedActivity}&vibe=${selectedVibe}&mood=${selectedMood}&latitude=${location.latitude}&longitude=${location.longitude}`
       );
     } finally {
       setIsLoading(false);
@@ -153,7 +153,7 @@ export default function HomePage() {
   const handleInterventionAccept = () => {
     clearSelectionClicks();
     setShowIntervention(false);
-    router.push(`/recommendations?activity=any&lat=${location.latitude}&lng=${location.longitude}`);
+    router.push(`/recommendations?activity=any&latitude=${location.latitude}&longitude=${location.longitude}`);
   };
 
   const handleInterventionDismiss = () => {

@@ -21,8 +21,8 @@ Stores all venue data with pre-computed AI features.
   
   // Location
   location: {
-    lat: number,                 // 35.6762
-    lng: number,                 // 139.6503
+    latitude: number,                 // 35.6762
+    longitude: number,                // 139.6503
     address: string,             // "1-2-3 Shibuya, Tokyo, Japan"
     city: string                 // "Tokyo"
   },

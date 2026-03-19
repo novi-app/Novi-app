@@ -2,8 +2,8 @@ from pydantic import BaseModel
 from typing import Optional
 
 class LocationInput(BaseModel):
-    lat: float
-    lng: float
+    latitude: float
+    longitude: float
 
 class RecommendationRequest(BaseModel):
     user_id: str

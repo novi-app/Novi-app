@@ -115,8 +115,8 @@ def get_recommendations(
             "activity": venue.get("activity"),
             "category": venue.get("category"),
             "location": {
-                "lat": venue_lat,
-                "lng": venue_lon,
+                "latitude": venue_lat,
+                "longitude": venue_lon,
             },
             "address": venue.get("address"),
             "distance_km": round(distance, 2),
