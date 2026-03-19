@@ -185,7 +185,7 @@ export default function VenueDetailsModal({ venue, onClose, onDirections }: Venu
         <div className="flex items-center justify-center px-6 pb-6 pt-4 border-t border-gray-200">
           <button
             onClick={onDirections}
-            className="px-18 py-4 bg-primary text-white font-semibold rounded-full active:scale-[0.98] transition-transform"
+            className="px-18 py-3 bg-primary text-white font-semibold rounded-full active:scale-[0.98] transition-transform"
           >
             Let's go
           </button>

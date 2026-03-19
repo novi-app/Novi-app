@@ -8,6 +8,7 @@ import { trackDirectionsClicked } from "@/lib/analytics";
 import { LS_USER_ID } from "@/lib/onboarding";
 import VenueDetailsModal from "@/components/venueDetailsModal";
 import type { Venue } from "@/lib/types";
+import { SpinningGlobe } from "@/components/spinningGlobe";
 
 export default function SavedPage() {
   const router = useRouter();
@@ -74,7 +75,7 @@ export default function SavedPage() {
     return (
       <div className="min-h-screen bg-cream flex items-center justify-center">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-secondary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
+          <SpinningGlobe className="mx-auto mb-1" />
           <p className="text-gray-600 font-medium">Loading saved places...</p>
         </div>
       </div>

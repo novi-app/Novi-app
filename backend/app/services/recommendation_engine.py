@@ -93,7 +93,7 @@ def get_recommendations(
         venue_price = venue.get("price_level", 0)
         if venue_price > budget + 1 and venue_price != 0:
             continue
-        
+
         venue_embedding = venue.get("embedding", [])
         
         similarity = cosine_similarity(user_embedding, venue_embedding)

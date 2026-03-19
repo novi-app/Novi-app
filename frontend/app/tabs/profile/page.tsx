@@ -5,6 +5,7 @@ import { useRouter } from "next/navigation";
 import { getUserProfile, updateUserPreferences } from "@/lib/api";
 import { LS_USER_ID } from "@/lib/onboarding";
 import type { UserProfile } from "@/lib/types";
+import { SpinningGlobe } from "@/components/spinningGlobe";
 
 const DIETARY_OPTIONS = [
   { value: "vegetarian", label: "Vegetarian" },
@@ -80,7 +81,7 @@ export default function ProfilePage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-cream flex items-center justify-center">
-        <div className="w-12 h-12 border-4 border-secondary border-t-transparent rounded-full animate-spin" />
+        <SpinningGlobe />
       </div>
     );
   }

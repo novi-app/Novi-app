@@ -3,12 +3,14 @@
 import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
-import { getTrendingVenues, saveVenue, unsaveVenue, getSavedVenues } from "@/lib/api";
+import { getTrendingVenues, saveVenue, unsaveVenue, getSavedVenues, getRecommendations } from "@/lib/api";
 import type { TrendingVenue, Venue } from "@/lib/types";
 import { trackRecommendationsViewed } from "@/lib/analytics";
 import { LS_USER_ID, LS_USER_NAME, ACTIVITY } from "@/lib/onboarding";
 import TrendingVenueCard, { TrendingVenueCardSkeleton } from "@/components/trendingVenueCard";
+import { SpinningGlobe } from "@/components/spinningGlobe";
 import VenueDetailsModal from "@/components/venueDetailsModal";
+import NoviPickModal from "@/components/noviPickModal";
 import { trackSelectionClick, clearSelectionClicks, setSelectionCooldown } from "@/lib/freezeDetection";
 import { InterventionModal } from "@/components/interventionModal";
 
@@ -22,6 +24,33 @@ function getTimeOfDay(): "morning" | "afternoon" | "night" {
   if (hour >= 6 && hour < 12) return "morning";
   if (hour >= 12 && hour < 19) return "afternoon";
   return "night";
+}
+
+function isVenueOpenNow(openingHours: any): boolean {
+  const periods = openingHours?.periods;
+  if (!periods?.length) return true;
+
+  const now = new Date(new Date().getTime() + 9 * 60 * 60 * 1000);
+  const currentDay = now.getUTCDay(); // 0=Sun
+  const currentMin = now.getUTCHours() * 60 + now.getUTCMinutes();
+
+  for (const period of periods) {
+    const openDay = period.open?.day;
+    const openMin = (period.open?.hour ?? 0) * 60 + (period.open?.minute ?? 0);
+    if (!period.close) {
+      if (openDay === currentDay) return true;
+      continue;
+    }
+    const closeDay = period.close.day;
+    const closeMin = period.close.hour * 60 + period.close.minute;
+    if (openDay === closeDay) {
+      if (currentDay === openDay && currentMin >= openMin && currentMin < closeMin) return true;
+    } else {
+      if (currentDay === openDay && currentMin >= openMin) return true;
+      if (currentDay === closeDay && currentMin < closeMin) return true;
+    }
+  }
+  return false;
 }
 
 function getHeroImage(tod: string): string {
@@ -38,8 +67,10 @@ export default function HomePage() {
   const [selectedMood, setSelectedMood] = useState<string | null>(null);
   const [trendingVenues, setTrendingVenues] = useState<TrendingVenue[]>([]);
   const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
+  const [noviPickVenue, setNoviPickVenue] = useState<Venue | null>(null);
   const [savedVenueIds, setSavedVenueIds] = useState<Set<string>>(new Set());
   const [isLoading, setIsLoading] = useState(false);
+  const [isNoviLoading, setIsNoviLoading] = useState(false);
   const [venuesLoading, setVenuesLoading] = useState(true);
   const [showIntervention, setShowIntervention] = useState(false);
   const [interventionMessage, setInterventionMessage] = useState("");
@@ -70,12 +101,17 @@ export default function HomePage() {
   };
 
   const handleLetNoviDecide = async () => {
-    setIsLoading(true);
+    setIsNoviLoading(true);
     try {
+      const userId = localStorage.getItem(LS_USER_ID) ?? "anonymous";
       trackRecommendationsViewed(0, "surprise_me", location);
-      router.push(`/recommendations?activity=any&latitude=${location.latitude}&longitude=${location.longitude}`);
+      const result = await getRecommendations(userId, location, "any");
+      if (result.recommendations.length > 0) {
+        const pick = result.recommendations.find(v => isVenueOpenNow(v.opening_hours)) ?? result.recommendations[0];
+        setNoviPickVenue(pick);
+      }
     } finally {
-      setIsLoading(false);
+      setIsNoviLoading(false);
     }
   };
 
@@ -116,7 +152,10 @@ export default function HomePage() {
     if (!selectedActivity || !selectedVibe || !selectedMood) return;
     setIsLoading(true);
     try {
+      const userId = localStorage.getItem(LS_USER_ID) ?? "anonymous";
       trackRecommendationsViewed(0, selectedActivity, location);
+      const result = await getRecommendations(userId, location, selectedActivity, { vibe: [selectedVibe], mood: selectedMood });
+      sessionStorage.setItem("prefetched_recommendations", JSON.stringify(result.recommendations));
       router.push(
         `/recommendations?activity=${selectedActivity}&vibe=${selectedVibe}&mood=${selectedMood}&latitude=${location.latitude}&longitude=${location.longitude}`
       );
@@ -243,21 +282,27 @@ export default function HomePage() {
             })}
           </div>
 
-          <button
-            onClick={handleLetNoviDecide}
-            disabled={isLoading}
-            className="w-full mt-4 mb-2 font-semibold transition-all active:scale-[0.98]"
-            style={{
-              fontSize: "14px",
-              color: "#E8700A",
-              textDecoration: "underline",
-              textUnderlineOffset: "3px",
-              background: "none",
-              border: "none",
-            }}
-          >
-            Or let Novi decide
-          </button>
+          {isNoviLoading ? (
+            <div className="flex flex-col items-center justify-center gap-1">
+              <SpinningGlobe size={42} />
+              <p className="text-gray-600 font-medium text-sm">Finding the perfect spot...</p>
+            </div>
+          ) : (
+            <button
+              onClick={handleLetNoviDecide}
+              className="w-full mt-4 mb-4 font-semibold transition-all active:scale-[0.98]"
+              style={{
+                fontSize: "14px",
+                color: "#E8700A",
+                textDecoration: "underline",
+                textUnderlineOffset: "3px",
+                background: "none",
+                border: "none",
+              }}
+            >
+              Or let Novi decide
+            </button>
+          )}
 
           {/* Progressive: vibe */}
           {selectedActivity && (
@@ -311,23 +356,30 @@ export default function HomePage() {
           )}
 
           {selectedActivity && (
-            <button
-              onClick={handleContinue}
-              disabled={!allSelected || isLoading}
-              className="px-12 font-semibold text-white mt-8 mx-auto block transition-all active:scale-[0.98] disabled:opacity-40"
-              style={{
-                height: "52px",
-                borderRadius: "14px",
-                fontSize: "15px",
-                background: "#E8700A",
-                boxShadow: "0 4px 6px -2px rgba(0,0,0,0.3)"
-              }}
-            >
-              {isLoading ? "Finding spots…" : "Find My spot"}
-            </button>
+            isLoading ? (
+              <div className="flex flex-col items-center justify-center mt-6 gap-1">
+                <SpinningGlobe size={45} />
+                <p className="text-gray-600 font-medium text-sm">Finding the perfect spots...</p>
+              </div>
+            ) : (
+              <button
+                onClick={handleContinue}
+                disabled={!allSelected}
+                className="px-12 font-semibold text-white mt-8 mx-auto block transition-all active:scale-[0.98] disabled:opacity-40"
+                style={{
+                  height: "52px",
+                  borderRadius: "14px",
+                  fontSize: "15px",
+                  background: "#E8700A",
+                  boxShadow: "0 4px 6px -2px rgba(0,0,0,0.3)"
+                }}
+              >
+                Find My spot
+              </button>
+            )
           )}
 
-          <hr className="my-4 border-t border-black" />
+          <hr className="mt-6 mb-2 border-t border-black" />
 
         </div>
 
@@ -361,6 +413,18 @@ export default function HomePage() {
         </div>
 
       </div>
+
+      {noviPickVenue && (
+        <NoviPickModal
+          venue={noviPickVenue}
+          onClose={() => setNoviPickVenue(null)}
+          onDetails={() => {
+            setSelectedVenue(noviPickVenue);
+            setNoviPickVenue(null);
+          }}
+          onDirections={() => handleDirections(noviPickVenue)}
+        />
+      )}
 
       {selectedVenue && (
         <VenueDetailsModal

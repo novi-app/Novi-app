@@ -12,6 +12,7 @@ import { Venue } from "@/lib/types";
 import VenueCard from "@/components/venueCard";
 import VenueDetailsModal from "@/components/venueDetailsModal";
 import { clearSelectionClicks } from "@/lib/freezeDetection";
+import { SpinningGlobe } from "@/components/spinningGlobe";
 
 const ACTIVITY_LABELS: Record<string, string> = {
   food: "Where to eat",
@@ -158,6 +159,18 @@ function Page () {
         return;
       }
 
+      const prefetched = sessionStorage.getItem("prefetched_recommendations");
+      if (prefetched) {
+        sessionStorage.removeItem("prefetched_recommendations");
+        const recommendations = JSON.parse(prefetched);
+        if (recommendations.length === 0) {
+          setError("No venues found. Try adjusting your preferences.");
+        } else {
+          setVenues(recommendations);
+        }
+        return;
+      }
+
       const sessionPreferences = vibe ? { vibe: [vibe] } : undefined;
 
       const result = await getRecommendations(
@@ -287,16 +300,6 @@ function Page () {
   const alternatives = venues.slice(1, 3);
   const moreOptions = venues.slice(3);
 
-  if (isLoading) {
-    return (
-      <div className="min-h-screen bg-cream flex items-center justify-center">
-        <div className="text-center">
-          <div className="w-12 h-12 border-4 border-secondary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-600 font-medium">Finding the perfect spots...</p>
-        </div>
-      </div>
-    );
-  }
 
   if (error) {
     return (
@@ -343,7 +346,36 @@ function Page () {
       </div>
 
       <div className="pt-6 px-6 max-w-md mx-auto">
-        {topVenue && (
+        {isLoading && (
+          <div>
+            <div className="mb-6">
+              <div className="h-5 w-40 bg-gray-200 rounded-full mb-3 animate-pulse" />
+              <div className="rounded-2xl overflow-hidden bg-white">
+                <div className="h-52 bg-gray-200 animate-pulse" />
+                <div className="p-4 space-y-3">
+                  <div className="h-5 w-3/4 bg-gray-200 rounded-full animate-pulse" />
+                  <div className="h-4 w-1/2 bg-gray-200 rounded-full animate-pulse" />
+                  <div className="h-4 w-2/3 bg-gray-200 rounded-full animate-pulse" />
+                </div>
+              </div>
+            </div>
+            <div>
+              <div className="h-5 w-32 bg-gray-200 rounded-full mb-3 animate-pulse" />
+              <div className="space-y-3">
+                {[0, 1].map(i => (
+                  <div key={i} className="rounded-2xl overflow-hidden bg-white flex">
+                    <div className="w-24 h-24 bg-gray-200 animate-pulse shrink-0" />
+                    <div className="p-3 flex-1 space-y-2">
+                      <div className="h-4 w-3/4 bg-gray-200 rounded-full animate-pulse" />
+                      <div className="h-3 w-1/2 bg-gray-200 rounded-full animate-pulse" />
+                    </div>
+                  </div>
+                ))}
+              </div>
+            </div>
+          </div>
+        )}
+        {!isLoading && topVenue && (
           <div className="mb-6">
             <h2 className="text-lg font-bold text-gray-900 mb-3">
               Best matched for you
@@ -359,7 +391,7 @@ function Page () {
           </div>
         )}
 
-        {alternatives.length > 0 && (
+        {!isLoading && alternatives.length > 0 && (
           <div className="mb-6">
             <h2 className="text-lg font-bold text-gray-900 mb-3">
               More alternatives
@@ -380,7 +412,7 @@ function Page () {
           </div>
         )}
 
-        {moreOptions.length > 0 && !showAll && (
+        {!isLoading && moreOptions.length > 0 && !showAll && (
           <button
             onClick={() => setShowAll(true)}
             className="w-full py-4 border-2 border-primary text-primary font-semibold rounded-full active:scale-[0.98] transition-transform flex items-center justify-center gap-2"
@@ -392,7 +424,7 @@ function Page () {
           </button>
         )}
 
-        {showAll && moreOptions.length > 0 && (
+        {!isLoading && showAll && moreOptions.length > 0 && (
           <div className="space-y-3 animate-fadeIn">
             {moreOptions.map((venue, index) => (
               <VenueCard
@@ -453,8 +485,8 @@ export default function RecommendationsPage() {
     <Suspense fallback={
       <div className="min-h-screen bg-cream flex items-center justify-center">
         <div className="text-center">
-          <div className="w-12 h-12 border-4 border-secondary border-t-transparent rounded-full animate-spin mx-auto mb-4" />
-          <p className="text-gray-600 font-medium">Finding the perfect spots...</p>
+          <SpinningGlobe />
+          <p className="text-gray-600 font-medium mt-3">Finding the perfect spots...</p>
         </div>
       </div>
     }>
