@@ -1,3 +1,4 @@
+from datetime import datetime
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from google.cloud import firestore
@@ -21,7 +22,8 @@ async def save_venue(request: SaveVenueRequest):
             raise HTTPException(status_code=404, detail="User not found")
         
         db.collection("users").document(request.user_id).update({
-            "saved_venues": firestore.ArrayUnion([request.venue_id])
+            "saved_venues": firestore.ArrayUnion([request.venue_id]),
+            f"saved_venues_at.{request.venue_id}": datetime.utcnow().isoformat(),
         })
         
         return {"status": "success", "message": "Venue saved"}
@@ -45,7 +47,8 @@ async def unsave_venue(request: SaveVenueRequest):
             raise HTTPException(status_code=404, detail="User not found")
         
         db.collection("users").document(request.user_id).update({
-            "saved_venues": firestore.ArrayRemove([request.venue_id])
+            "saved_venues": firestore.ArrayRemove([request.venue_id]),
+            f"saved_venues_at.{request.venue_id}": firestore.DELETE_FIELD,
         })
         
         return {"status": "success", "message": "Venue unsaved"}
@@ -67,10 +70,11 @@ async def get_saved_venues(user_id: str):
             raise HTTPException(status_code=404, detail="User not found")
         
         saved_ids = user.get("saved_venues", [])
-        
+        saved_at_map = user.get("saved_venues_at", {})
+
         if not saved_ids:
             return {"venues": [], "count": 0}
-        
+
         db = get_db()
         venues = []
 
@@ -79,6 +83,7 @@ async def get_saved_venues(user_id: str):
             if doc.exists:
                 venue_data = doc.to_dict()
                 venue_data["venue_id"] = doc.id
+                venue_data["saved_at"] = saved_at_map.get(doc.id)
                 venues.append(venue_data)
         
         return {"venues": venues, "count": len(venues)}

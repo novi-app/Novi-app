@@ -22,6 +22,7 @@ export interface Venue {
   solo_reason?: string;
   similarity_score: number;
   combined_score: number;
+  saved_at?: string;
 }
 
 export interface TrendingVenue {

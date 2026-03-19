@@ -222,12 +222,17 @@ export default function HomePage() {
     const userId = localStorage.getItem(LS_USER_ID);
     if (!userId) return;
     const alreadySaved = savedVenueIds.has(venue.venue_id);
-    setSavedVenueIds(prev => {
-      const next = new Set(prev);
-      alreadySaved ? next.delete(venue.venue_id) : next.add(venue.venue_id);
-      sessionStorage.setItem("cached_saved_ids", JSON.stringify([...next]));
-      return next;
-    });
+
+    const nextIds = new Set(savedVenueIds);
+    alreadySaved ? nextIds.delete(venue.venue_id) : nextIds.add(venue.venue_id);
+    setSavedVenueIds(nextIds);
+
+    const cachedVenues: Venue[] = JSON.parse(sessionStorage.getItem("cached_saved_venues") ?? "[]");
+    const updatedVenues = alreadySaved
+      ? cachedVenues.filter(v => v.venue_id !== venue.venue_id)
+      : [...cachedVenues, { ...venue, distance_km: 0, solo_score: 0, similarity_score: 0, combined_score: 0, saved_at: new Date().toISOString() }];
+    sessionStorage.setItem("cached_saved_ids", JSON.stringify([...nextIds]));
+    sessionStorage.setItem("cached_saved_venues", JSON.stringify(updatedVenues));
     try {
       alreadySaved
         ? await unsaveVenue(userId, venue.venue_id)

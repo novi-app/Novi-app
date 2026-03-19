@@ -218,6 +218,11 @@ function Page () {
       newSaved.add(venue.venue_id);
     }
     setSavedVenueIds(newSaved);
+    const cachedVenues: Venue[] = JSON.parse(sessionStorage.getItem("cached_saved_venues") ?? "[]");
+    const updatedCache = isSaved
+      ? cachedVenues.filter(v => v.venue_id !== venue.venue_id)
+      : [...cachedVenues, { ...venue, saved_at: new Date().toISOString() }];
+    sessionStorage.setItem("cached_saved_venues", JSON.stringify(updatedCache));
 
     try {
       if (isSaved) {

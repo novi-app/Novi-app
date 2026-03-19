@@ -20,6 +20,7 @@ def onboard_user(username: str, preferences: UserPreferences) -> dict:
         "preferences": preferences_dict,
         "embedding": user_embedding,
         "saved_venues": [],
+        "saved_venues_at": {},
         "created_at": datetime.utcnow().isoformat(),
         "updated_at": datetime.utcnow().isoformat(),
     }

@@ -10,6 +10,20 @@ import VenueDetailsModal from "@/components/venueDetailsModal";
 import type { Venue } from "@/lib/types";
 import { SpinningGlobe } from "@/components/spinningGlobe";
 
+const USER_LOCATION = { latitude: 35.6595, longitude: 139.7004 };
+const NOW = Date.now();
+
+function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) * Math.cos((lat2 * Math.PI) / 180) *
+    Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 export default function SavedPage() {
   const router = useRouter();
   const [venues, setVenues] = useState<Venue[]>([]);
@@ -187,6 +201,16 @@ function SavedVenueCard({
   onUnsave: () => void;
 }) {
   const priceSymbol = venue.price_level > 0 ? "¥".repeat(venue.price_level) : "FREE";
+  const walkMins = Math.max(1, Math.round(
+    (venue.distance_km || haversineKm(USER_LOCATION.latitude, USER_LOCATION.longitude, venue.location.latitude, venue.location.longitude)) / 5 * 60
+  ));
+  const savedLabel = (() => {
+    if (!venue.saved_at) return null;
+    const days = Math.floor((NOW - new Date(venue.saved_at).getTime()) / 86400000);
+    if (days === 0) return "Saved today";
+    if (days === 1) return "Saved yesterday";
+    return `Saved ${days} days ago`;
+  })();
 
   return (
     <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
@@ -249,11 +273,16 @@ function SavedVenueCard({
             </div>
           )}
 
-          <div className="flex items-center gap-2 text-xs text-gray-500 mb-3">
-            <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-            </svg>
-            {venue.distance_km} min walk
+          <div className="flex items-center justify-between mb-3">
+            <div className="flex items-center gap-1 text-xs text-gray-500">
+              <svg className="w-3 h-3" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+              </svg>
+              {walkMins} min walk
+            </div>
+            {savedLabel && (
+              <span className="text-xs text-gray-400">{savedLabel}</span>
+            )}
           </div>
 
           <div className="flex gap-2">
