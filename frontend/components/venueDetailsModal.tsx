@@ -10,6 +10,20 @@ interface VenueDetailsModalProps {
   onDirections: () => void;
 }
 
+const USER_LOCATION = { latitude: 35.6595, longitude: 139.7004 };
+
+function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
+  const R = 6371;
+  const dLat = ((lat2 - lat1) * Math.PI) / 180;
+  const dLng = ((lng2 - lng1) * Math.PI) / 180;
+  const a =
+    Math.sin(dLat / 2) ** 2 +
+    Math.cos((lat1 * Math.PI) / 180) *
+    Math.cos((lat2 * Math.PI) / 180) *
+    Math.sin(dLng / 2) ** 2;
+  return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
+}
+
 export default function VenueDetailsModal({ venue, onClose, onDirections }: VenueDetailsModalProps) {
   const onCloseRef = useRef(onClose);
 
@@ -70,7 +84,7 @@ export default function VenueDetailsModal({ venue, onClose, onDirections }: Venu
             <span className="text-gray-400">·</span>
             <span className="text-gray-600 text-sm flex items-center gap-1">
         {walkingIcon}
-        {Math.round(venue.distance_km / 5 * 60)} min walk
+        {Math.max(1, Math.round(haversineKm(USER_LOCATION.latitude, USER_LOCATION.longitude, venue.location.latitude, venue.location.longitude) / 5 * 60))} min walk
       </span>
       <span className="text-gray-400">·</span>
                   <span className="text-gray-700">{venue.category}</span>
