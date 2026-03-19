@@ -18,12 +18,10 @@ export function useFreezeDetection({
   const detectorRef = useRef<FreezeDetector | null>(null);
   const onFreezeRef = useRef(onFreeze);
 
-  // Update ref when onFreeze changes, but don't recreate detector
   useEffect(() => {
     onFreezeRef.current = onFreeze;
   }, [onFreeze]);
 
-  // Create detector once, never recreate
   useEffect(() => {
     if (!enabled) return;
 
@@ -34,23 +32,20 @@ export function useFreezeDetection({
           moderate: 120000,
           urgent: 180000,
         },
-        cooldownMs: 60000,
+        cooldownMs: 120000,
       },
       (event) => {
-        // Use the ref to always call latest onFreeze
         onFreezeRef.current(event);
       }
     );
 
     detectorRef.current = detector;
-    console.log("🎯 FreezeDetector created");
 
     return () => {
-      console.log("🗑️ FreezeDetector destroyed");
       detector.destroy();
       detectorRef.current = null;
     };
-  }, [enabled]); // Only recreate if enabled changes
+  }, [enabled]);
 
   return {
     recordCardView: (venueId: string) => {

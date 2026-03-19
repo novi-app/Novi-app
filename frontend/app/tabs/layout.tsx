@@ -4,7 +4,7 @@ import { useEffect, useState } from "react";
 import { useRouter, usePathname } from "next/navigation";
 import BottomNav from "@/components/bottomNav";
 import { InterventionModal } from "@/components/interventionModal";
-import { trackTabSwitch } from "@/lib/freezeDetection";
+import { trackTabSwitch, clearTabSwitches, setTabSwitchCooldown } from "@/lib/freezeDetection";
 import { LS_USER_ID } from "@/lib/onboarding";
 
 export default function TabsLayout({ children }: { children: React.ReactNode }) {
@@ -39,38 +39,39 @@ export default function TabsLayout({ children }: { children: React.ReactNode }) 
 
     // Track the switch - returns tab name if should trigger intervention
     const shouldTrigger = trackTabSwitch(tab);
-    
+
     if (shouldTrigger) {
-      // Show context-specific intervention based on which tab user is on
-      const messages = {
-        home: "Ready to explore something new?",
-        saved: "You've saved some great spots. Time to pick one.",
-        profile: "Enough browsing. Let's find you something.",
-      };
-      
-      setInterventionMessage(messages[shouldTrigger as keyof typeof messages]);
-      setShowIntervention(true);
+      const userId = localStorage.getItem(LS_USER_ID);
+      fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/intervention`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: userId || "anonymous", trigger_type: "tab_switching", context: { current_tab: shouldTrigger } }),
+      })
+        .then((res) => (res.ok ? res.json() : null))
+        .then((data) => {
+          setInterventionMessage(data?.message ?? "Enough browsing. Let's find you something!");
+          setShowIntervention(true);
+        })
+        .catch(() => {
+          setInterventionMessage("Enough browsing. Let's find you something!");
+          setShowIntervention(true);
+        });
     }
   }, [pathname]);
 
   const handleInterventionAccept = () => {
     setShowIntervention(false);
     
-    // Navigate based on current tab
-    if (currentTab === "saved") {
-      // User is on saved tab - keep them there to pick one
-      // They can click on a saved venue
-    } else if (currentTab === "profile") {
+    if (currentTab === "profile") {
       // Redirect to home to start exploring
       router.push("/tabs/home");
-    } else {
-      // Already on home - they can continue exploring
     }
   };
 
   const handleInterventionDismiss = () => {
+    clearTabSwitches();
+    setTabSwitchCooldown(120000); // 2-minute cooldown after dismissal
     setShowIntervention(false);
-    // Don't clear tab switches - let them continue browsing
   };
 
   return (

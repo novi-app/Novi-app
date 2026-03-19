@@ -9,7 +9,7 @@ import { trackRecommendationsViewed } from "@/lib/analytics";
 import { LS_USER_ID, LS_USER_NAME, ACTIVITY } from "@/lib/onboarding";
 import TrendingVenueCard, { TrendingVenueCardSkeleton } from "@/components/trendingVenueCard";
 import VenueDetailsModal from "@/components/venueDetailsModal";
-import { trackSelectionClick, clearSelectionClicks } from "@/lib/freezeDetection";
+import { trackSelectionClick, clearSelectionClicks, setSelectionCooldown } from "@/lib/freezeDetection";
 import { InterventionModal } from "@/components/interventionModal";
 
 const location = { latitude: 35.6595, longitude: 139.7004 };
@@ -79,25 +79,33 @@ export default function HomePage() {
     }
   };
 
+  const triggerSelectionIntervention = async () => {
+    const userId = localStorage.getItem(LS_USER_ID);
+    try {
+      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/intervention`, {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ user_id: userId || "anonymous", trigger_type: "selection_indecision", context: {} }),
+      });
+      const data = res.ok ? await res.json() : null;
+      setInterventionMessage(data?.message ?? "Trust your gut. Pick one and go!");
+    } catch {
+      setInterventionMessage("Trust your gut. Pick one and go!");
+    }
+    setShowIntervention(true);
+  };
+
   const handleActivityClick = (activity: string) => {
     setSelectedActivity(activity);
     setSelectedVibe(null);
     setSelectedMood(null);
-    const shouldTrigger = trackSelectionClick("activity", activity);
-    if (shouldTrigger) {
-      setInterventionMessage("Trust your gut. Pick one and go!");
-      setShowIntervention(true);
-    }
+    if (trackSelectionClick("activity", activity)) triggerSelectionIntervention();
   };
 
   const handleVibeClick = (vibe: string) => {
     setSelectedVibe(vibe);
     setSelectedMood(null);
-    const shouldTrigger = trackSelectionClick("vibe", vibe);
-    if (shouldTrigger) {
-      setInterventionMessage("Any choice is a good choice. Just commit!");
-      setShowIntervention(true);
-    }
+    if (trackSelectionClick("vibe", vibe)) triggerSelectionIntervention();
   };
 
   const handleMoodClick = (mood: string) => {
@@ -157,6 +165,8 @@ export default function HomePage() {
   };
 
   const handleInterventionDismiss = () => {
+    clearSelectionClicks();
+    setSelectionCooldown(120000); // 2-minute cooldown after dismissal
     setShowIntervention(false);
   };
 

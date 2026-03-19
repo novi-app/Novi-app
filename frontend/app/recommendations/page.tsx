@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, Suspense } from "react";
+import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getRecommendations, saveVenue, unsaveVenue, getUserProfile } from "@/lib/api";
 import { trackDirectionsClicked, trackRecommendationDetailsViewed, trackFreezeDetected, trackInterventionShown, trackInterventionResponse, trackRecommendationsViewed } from "@/lib/analytics";
@@ -35,6 +35,7 @@ function Page () {
   const [interventionData, setInterventionData] = useState<any>(null);
   const [interventionStartTime, setInterventionStartTime] = useState(0);
   const [dismissalCount, setDismissalCount] = useState(0);
+  const showInterventionRef = useRef(false);
   const [hasTrackedView, setHasTrackedView] = useState(false);
 
   const activity = searchParams.get("activity") || "any";
@@ -46,10 +47,9 @@ function Page () {
     enabled: true,
     recommendations: venues,
     onFreeze: async (event) => {
+      if (showInterventionRef.current) return;
       const userId = localStorage.getItem(LS_USER_ID);
       if (!userId) return;
-
-      console.log("🔥 FREEZE EVENT:", event);
 
       trackFreezeDetected(event.rule, event.level, event.context);
 
@@ -74,7 +74,7 @@ function Page () {
               trigger_type: event.rule,
               context: {
                 ...event.context,
-                venue_name: recommendedVenue.name,  // Add venue name for backend
+                venue_name: recommendedVenue.name,
               },
             }),
           }
@@ -86,7 +86,6 @@ function Page () {
         }
 
         const data = await response.json();
-        console.log("💬 Intervention response:", data);
 
         const newInterventionData = {
           level: event.level,
@@ -96,12 +95,16 @@ function Page () {
             name: recommendedVenue.name,
             photo: recommendedVenue.photo,
             category: recommendedVenue.category,
+            rating: recommendedVenue.rating,
+            reviews_count: recommendedVenue.reviews_count,
+            price_level: recommendedVenue.price_level,
+            tags: recommendedVenue.tags,
+            solo_reason: recommendedVenue.solo_reason,
+            distance_km: recommendedVenue.distance_km,
           },
           triggerRule: event.rule,
         };
-        
-        console.log("✅ Setting intervention data:", newInterventionData);
-        
+                
         setInterventionData(newInterventionData);
         setInterventionStartTime(Date.now());
         setShowIntervention(true);
@@ -126,6 +129,10 @@ function Page () {
   });
 
   useEffect(() => {
+    showInterventionRef.current = showIntervention;
+  }, [showIntervention]);
+
+  useEffect(() => {
     loadRecommendations();
     loadSavedVenues();
   }, []);
@@ -136,7 +143,6 @@ function Page () {
       trackRecommendationsViewed(venues.length, activity, { latitude, longitude });
       setHasTrackedView(true);
       
-      // Clear selection clicks - user successfully made it to recommendations
       clearSelectionClicks();
     }
   }, [isLoading, venues, activity, latitude, longitude, hasTrackedView]);
@@ -214,12 +220,9 @@ function Page () {
   };
 
   const handleDetails = (venue: Venue, position: number) => {
-    console.log("🔍 Opening details for:", venue.name);
     
-    // Track for freeze detection
     freezeDetection.recordDetailsView(venue.venue_id);
     
-    // Track for analytics
     trackRecommendationDetailsViewed(
       venue.venue_id,
       venue.name,
@@ -229,7 +232,6 @@ function Page () {
       venue.distance_km
     );
     
-    // Open modal
     setSelectedVenue(venue);
   };
 
