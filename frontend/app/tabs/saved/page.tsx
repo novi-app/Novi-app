@@ -171,7 +171,7 @@ function SavedVenueCard({
   onDirections: () => void;
   onUnsave: () => void;
 }) {
-  const priceSymbol = venue.price_level > 0 ? "$".repeat(venue.price_level) : "FREE";
+  const priceSymbol = venue.price_level > 0 ? "¥".repeat(venue.price_level) : "FREE";
 
   return (
     <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">

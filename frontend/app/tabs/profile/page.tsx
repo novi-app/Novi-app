@@ -15,9 +15,9 @@ const DIETARY_OPTIONS = [
 ];
 
 const BUDGET_OPTIONS = [
-  { value: 1, label: "Budget-friendly", symbol: "$" },
-  { value: 2, label: "Moderate", symbol: "$$" },
-  { value: 3, label: "Treat yourself", symbol: "$$$" },
+  { value: 1, label: "Budget-friendly", symbol: "¥" },
+  { value: 2, label: "Moderate", symbol: "¥¥" },
+  { value: 3, label: "Treat yourself", symbol: "¥¥¥" },
 ];
 
 const EXCLUDE_CATEGORIES = [
@@ -106,7 +106,7 @@ export default function ProfilePage() {
     .filter(Boolean)
     .join(", ") || "None";
 
-  const budgetLabel = BUDGET_OPTIONS.find((o) => o.value === profile.preferences.budget)?.symbol || "$$";
+  const budgetLabel = BUDGET_OPTIONS.find((o) => o.value === profile.preferences.budget)?.symbol || "¥¥";
 
   const excludedLabels = (profile.preferences.excluded_categories || [])
     .map((c) => EXCLUDE_CATEGORIES.find((o) => o.value === c)?.label)

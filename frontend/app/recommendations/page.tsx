@@ -317,30 +317,32 @@ function Page () {
   return (
     <div className="min-h-screen bg-cream pb-6">
       <div
-        className="bg-secondary px-6 text-white pb-6"
+        className="bg-secondary px-6 flex flex-col text-white pb-6"
         style={{ paddingTop: "max(env(safe-area-inset-top), 2rem)" }}
       >
-        <div className="max-w-md mx-auto flex items-center justify-between">
-          <button
-            onClick={() => router.back()}
-            className="w-10 h-10 flex items-center justify-center rounded-full bg-white bg-opacity-20"
-          >
-            <svg className="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
-            </svg>
-          </button>
-          <h1 className="text-xl font-bold">{ACTIVITY_LABELS[activity]}</h1>
-          <button className="flex items-center gap-1 px-3 py-1.5 bg-white bg-opacity-20 rounded-full">
-            <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-            </svg>
-            <span className="text-sm font-medium">Tokyo</span>
-          </button>
+        <div className="max-w-md mx-auto w-full">
+          <div className="flex items-center justify-between mb-4">
+            <button
+              onClick={() => router.back()}
+              className="w-7 h-7 flex items-center justify-center text-black rounded-full bg-white bg-opacity-20"
+            >
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 19l-7-7 7-7" />
+              </svg>
+            </button>
+            <button className="flex items-center gap-1 px-3 py-2 bg-white text-secondary bg-opacity-20 rounded-full">
+              <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
+              </svg>
+              <span className="text-sm text-black font-medium">Tokyo</span>
+            </button>
+          </div>
+          <h1 className="text-2xl font-bold">{ACTIVITY_LABELS[activity]}</h1>
         </div>
       </div>
 
-      <div className="px-6 max-w-md mx-auto">
+      <div className="pt-6 px-6 max-w-md mx-auto">
         {topVenue && (
           <div className="mb-6">
             <h2 className="text-lg font-bold text-gray-900 mb-3">
@@ -360,7 +362,7 @@ function Page () {
         {alternatives.length > 0 && (
           <div className="mb-6">
             <h2 className="text-lg font-bold text-gray-900 mb-3">
-              Two other alternatives
+              More alternatives
             </h2>
             <div className="space-y-3">
               {alternatives.map((venue, index) => (
@@ -381,7 +383,7 @@ function Page () {
         {moreOptions.length > 0 && !showAll && (
           <button
             onClick={() => setShowAll(true)}
-            className="w-full py-4 border-2 border-orange-500 text-orange-500 font-semibold rounded-xl active:scale-[0.98] transition-transform flex items-center justify-center gap-2"
+            className="w-full py-4 border-2 border-primary text-primary font-semibold rounded-full active:scale-[0.98] transition-transform flex items-center justify-center gap-2"
           >
             Show me more options
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">

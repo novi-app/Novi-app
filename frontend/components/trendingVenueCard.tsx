@@ -59,6 +59,8 @@ export default function TrendingVenueCard({
   isSaved,
 }: TrendingVenueCardProps) {
   const mins = walkMinutes(venue);
+  const displayTag = venue.tags?.find((t) => t !== "Solo Friendly") ?? venue.tags?.[0];
+
 
   return (
     <div
@@ -94,7 +96,7 @@ export default function TrendingVenueCard({
         </button>
 
         <div className="flex items-center gap-1 mt-0.5">
-          <span style={{ color: "#F59E0B", fontSize: "20px" }}>★</span>
+          <span>⭐️</span>
           <span className="font-semibold text-secondary" style={{ fontSize: "clamp(11px, 3vw, 13px)" }}>
             {venue.rating.toFixed(1)}
           </span>
@@ -114,7 +116,7 @@ export default function TrendingVenueCard({
         </div>
 
         {/* Vibe tag */}
-        {venue.tags?.[0] && (
+        {displayTag && (
           <div className="mt-1">
             <span
               className="inline-block px-3 py-1 rounded-full font-medium"
@@ -124,7 +126,7 @@ export default function TrendingVenueCard({
                 color: "#0B4F4A",
               }}
             >
-              {venue.tags[0]}
+              {displayTag}
             </span>
           </div>
         )}

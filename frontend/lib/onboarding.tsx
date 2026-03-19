@@ -28,9 +28,9 @@ export const DIETARY = [
 ];
 
 export const BUDGET = [
-  { value: 1, symbol: "$", label: "I keep it budget-friendly" },
-  { value: 2, symbol: "$$", label: "I balance both" },
-  { value: 3, symbol: "$$$", label: "I like the finer things" },
+  { value: 1, symbol: "¥", label: "I keep it budget-friendly" },
+  { value: 2, symbol: "¥¥", label: "I balance both" },
+  { value: 3, symbol: "¥¥¥", label: "I like the finer things" },
 ];
 
 export function IconFork(props: SVGProps<SVGSVGElement>) {

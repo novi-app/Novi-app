@@ -30,7 +30,7 @@ Stores all venue data with pre-computed AI features.
   // Details
   description: string,           // Generated from Google reviews
   tags: string[],                // ["authentic", "casual", "local_favorite"]
-  price_range: string,           // "$", "$$", "$$$", "$$$$"
+  price_range: string,           // "¥", "¥¥", "¥¥¥"
   rating: number,                // 4.5 (from Google)
   
   // Hours (optional)

@@ -154,7 +154,7 @@ def get_trending_venues(limit: int = 10) -> List[Dict[str, Any]]:
     for doc in venues:
         venue_data = doc.to_dict()
 
-        if venue_data.get("reviews_count", 0) >= 1000:
+        if venue_data.get("reviews_count", 0) >= 100:
             venue_data["venue_id"] = doc.id
             results.append(venue_data)
             
