@@ -21,16 +21,24 @@ export default function SavedPage() {
   }, []);
 
   const loadSavedVenues = async () => {
+    const userId = localStorage.getItem(LS_USER_ID);
+    if (!userId) {
+      router.replace("/onboarding/intro/1");
+      return;
+    }
+
+    const cached = sessionStorage.getItem("cached_saved_venues");
+    if (cached) {
+      setVenues(JSON.parse(cached));
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
     try {
-      const userId = localStorage.getItem(LS_USER_ID);
-      if (!userId) {
-        router.replace("/onboarding/intro/1");
-        return;
-      }
-
       const result = await getSavedVenues(userId);
       setVenues(result.venues);
+      sessionStorage.setItem("cached_saved_venues", JSON.stringify(result.venues));
     } catch (err) {
       console.error("Failed to load saved venues:", err);
     } finally {
@@ -42,7 +50,13 @@ export default function SavedPage() {
     const userId = localStorage.getItem(LS_USER_ID);
     if (!userId) return;
 
-    setVenues((prev) => prev.filter((v) => v.venue_id !== venueId));
+    setVenues((prev) => {
+      const updated = prev.filter((v) => v.venue_id !== venueId);
+      sessionStorage.setItem("cached_saved_venues", JSON.stringify(updated));
+      const updatedIds = updated.map((v) => v.venue_id);
+      sessionStorage.setItem("cached_saved_ids", JSON.stringify(updatedIds));
+      return updated;
+    });
 
     try {
       await unsaveVenue(userId, venueId);

@@ -41,21 +41,8 @@ export default function TabsLayout({ children }: { children: React.ReactNode }) 
     const shouldTrigger = trackTabSwitch(tab);
 
     if (shouldTrigger) {
-      const userId = localStorage.getItem(LS_USER_ID);
-      fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/intervention`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: userId || "anonymous", trigger_type: "tab_switching", context: { current_tab: shouldTrigger } }),
-      })
-        .then((res) => (res.ok ? res.json() : null))
-        .then((data) => {
-          setInterventionMessage(data?.message ?? "Enough browsing. Let's find you something!");
-          setShowIntervention(true);
-        })
-        .catch(() => {
-          setInterventionMessage("Enough browsing. Let's find you something!");
-          setShowIntervention(true);
-        });
+      setInterventionMessage("Enough browsing. Let's find you something!");
+      setShowIntervention(true);
     }
   }, [pathname]);
 

@@ -38,16 +38,24 @@ export default function ProfilePage() {
   }, []);
 
   const loadProfile = async () => {
+    const userId = localStorage.getItem(LS_USER_ID);
+    if (!userId) {
+      router.replace("/onboarding/intro/1");
+      return;
+    }
+
+    const cached = sessionStorage.getItem("cached_profile");
+    if (cached) {
+      setProfile(JSON.parse(cached));
+      setIsLoading(false);
+      return;
+    }
+
     setIsLoading(true);
     try {
-      const userId = localStorage.getItem(LS_USER_ID);
-      if (!userId) {
-        router.replace("/onboarding/intro/1");
-        return;
-      }
-
       const data = await getUserProfile(userId);
       setProfile(data);
+      sessionStorage.setItem("cached_profile", JSON.stringify(data));
     } catch (err) {
       console.error("Failed to load profile:", err);
     } finally {
@@ -63,7 +71,9 @@ export default function ProfilePage() {
 
     try {
       const result = await updateUserPreferences(userId, updates);
-      setProfile({ ...profile, preferences: result.preferences });
+      const updatedProfile = { ...profile, preferences: result.preferences };
+      setProfile(updatedProfile);
+      sessionStorage.setItem("cached_profile", JSON.stringify(updatedProfile));
       setEditingField(null);
     } catch (err) {
       console.error("Failed to update preferences:", err);
@@ -73,7 +83,13 @@ export default function ProfilePage() {
 
   const handleLogout = () => {
     if (!confirm("Are you sure you want to log out?")) return;
-    
+
+    sessionStorage.removeItem("cached_profile");
+    sessionStorage.removeItem("cached_trending_venues");
+    sessionStorage.removeItem("cached_saved_ids");
+    sessionStorage.removeItem("cached_saved_venues");
+    sessionStorage.removeItem("cached_novi_pool");
+    sessionStorage.removeItem("cached_novi_shown");
     localStorage.removeItem(LS_USER_ID);
     router.replace("/onboarding/intro/1");
   };

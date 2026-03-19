@@ -1,7 +1,9 @@
 "use client";
 
+import { useEffect } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Image from "next/image";
+import { LS_USER_ID } from "@/lib/onboarding";
 
 export function OnboardingHeader({ current, onBack, darkBg = false }: {
   current: number;
@@ -90,6 +92,12 @@ export default function IntroStepPage() {
   const step   = Number(params.step);
   const idx    = step - 1;
   const screen = SCREENS[idx];
+
+  useEffect(() => {
+    if (localStorage.getItem(LS_USER_ID)) {
+      router.replace("/tabs/home");
+    }
+  }, [router]);
 
   if (!screen) {
     router.replace("/onboarding/intro/1");

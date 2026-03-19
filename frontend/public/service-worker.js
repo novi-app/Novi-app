@@ -45,7 +45,7 @@ self.addEventListener("fetch", (event) => {
   const isStaticAsset =
     sameOrigin &&
     (url.pathname.startsWith("/_next/static/") ||
-      /\.(js|css|png|jpg|jpeg|svg|gif|webp|ico|woff2?)$/i.test(url.pathname)) &&
+      /\.(js|css|png|jpg|jpeg|svg|gif|webp|ico|woff2?|mp4)$/i.test(url.pathname)) &&
     url.pathname !== "/service-worker.js";
 
   if (!isStaticAsset) {

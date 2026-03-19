@@ -81,17 +81,31 @@ export default function HomePage() {
     const name = localStorage.getItem(LS_USER_NAME);
     if (name) setUserName(name);
     loadTrendingVenues();
+    prefetchNoviPicks();
   }, []);
 
   const loadTrendingVenues = async () => {
+    const cachedVenues = sessionStorage.getItem("cached_trending_venues");
+    const cachedSavedIds = sessionStorage.getItem("cached_saved_ids");
+    if (cachedVenues && cachedSavedIds) {
+      setTrendingVenues(JSON.parse(cachedVenues));
+      setSavedVenueIds(new Set(JSON.parse(cachedSavedIds)));
+      setVenuesLoading(false);
+      return;
+    }
+
     setVenuesLoading(true);
     try {
       const result = await getTrendingVenues();
-      setTrendingVenues(result.venues.slice(0, 5));
+      const venues = result.venues.slice(0, 5);
+      setTrendingVenues(venues);
+      sessionStorage.setItem("cached_trending_venues", JSON.stringify(venues));
       const userId = localStorage.getItem(LS_USER_ID);
       if (userId) {
         const saved = await getSavedVenues(userId);
-        setSavedVenueIds(new Set(saved.venues.map((v: any) => v.venue_id)));
+        const savedIds = saved.venues.map((v: { venue_id: string }) => v.venue_id);
+        setSavedVenueIds(new Set(savedIds));
+        sessionStorage.setItem("cached_saved_ids", JSON.stringify(savedIds));
       }
     } catch (error) {
       console.error("Failed to load trending venues:", error);
@@ -100,15 +114,55 @@ export default function HomePage() {
     }
   };
 
+  const prefetchNoviPicks = async () => {
+    if (sessionStorage.getItem("cached_novi_pool")) return;
+    const userId = localStorage.getItem(LS_USER_ID);
+    if (!userId) return;
+    try {
+      const result = await getRecommendations(userId, location, "any");
+      if (result.recommendations.length > 0) {
+        const open = result.recommendations.filter(v => isVenueOpenNow(v.opening_hours));
+        const picks = (open.length > 0 ? open : result.recommendations).slice(0, 5);
+        sessionStorage.setItem("cached_novi_pool", JSON.stringify(picks));
+      }
+    } catch {
+      // silent — user will see real loading state on first tap if this failed
+    }
+  };
+
   const handleLetNoviDecide = async () => {
     setIsNoviLoading(true);
     try {
-      const userId = localStorage.getItem(LS_USER_ID) ?? "anonymous";
-      trackRecommendationsViewed(0, "surprise_me", location);
-      const result = await getRecommendations(userId, location, "any");
-      if (result.recommendations.length > 0) {
-        const pick = result.recommendations.find(v => isVenueOpenNow(v.opening_hours)) ?? result.recommendations[0];
+      const pool: Venue[] = JSON.parse(sessionStorage.getItem("cached_novi_pool") ?? "[]");
+      const shown: string[] = JSON.parse(sessionStorage.getItem("cached_novi_shown") ?? "[]");
+      const available = pool.filter(v => !shown.includes(v.venue_id));
+
+      if (available.length > 0) {
+        // serve from cache — short delay preserves the "searching" feel
+        await new Promise(resolve => setTimeout(resolve, 1000));
+        const pick = available[0];
+        sessionStorage.setItem("cached_novi_shown", JSON.stringify([...shown, pick.venue_id]));
+        trackRecommendationsViewed(0, "surprise_me", location);
         setNoviPickVenue(pick);
+        // refresh pool in background when running low
+        if (available.length <= 2) {
+          sessionStorage.removeItem("cached_novi_pool");
+          prefetchNoviPicks();
+        }
+      } else {
+        // pool exhausted — reset shown history and fetch fresh picks
+        sessionStorage.removeItem("cached_novi_pool");
+        sessionStorage.removeItem("cached_novi_shown");
+        const userId = localStorage.getItem(LS_USER_ID) ?? "anonymous";
+        trackRecommendationsViewed(0, "surprise_me", location);
+        const result = await getRecommendations(userId, location, "any");
+        if (result.recommendations.length > 0) {
+          const open = result.recommendations.filter(v => isVenueOpenNow(v.opening_hours));
+          const picks = (open.length > 0 ? open : result.recommendations).slice(0, 5);
+          sessionStorage.setItem("cached_novi_pool", JSON.stringify(picks));
+          sessionStorage.setItem("cached_novi_shown", JSON.stringify([picks[0].venue_id]));
+          setNoviPickVenue(picks[0]);
+        }
       }
     } finally {
       setIsNoviLoading(false);
@@ -171,6 +225,7 @@ export default function HomePage() {
     setSavedVenueIds(prev => {
       const next = new Set(prev);
       alreadySaved ? next.delete(venue.venue_id) : next.add(venue.venue_id);
+      sessionStorage.setItem("cached_saved_ids", JSON.stringify([...next]));
       return next;
     });
     try {
@@ -182,6 +237,7 @@ export default function HomePage() {
       setSavedVenueIds(prev => {
         const next = new Set(prev);
         alreadySaved ? next.add(venue.venue_id) : next.delete(venue.venue_id);
+        sessionStorage.setItem("cached_saved_ids", JSON.stringify([...next]));
         return next;
       });
     }

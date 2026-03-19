@@ -73,12 +73,12 @@ async def get_saved_venues(user_id: str):
         
         db = get_db()
         venues = []
-        
-        for venue_id in saved_ids:
-            venue_doc = db.collection("venues").document(venue_id).get()
-            if venue_doc.exists:
-                venue_data = venue_doc.to_dict()
-                venue_data["venue_id"] = venue_id
+
+        refs = [db.collection("venues").document(venue_id) for venue_id in saved_ids]
+        for doc in db.get_all(refs):
+            if doc.exists:
+                venue_data = doc.to_dict()
+                venue_data["venue_id"] = doc.id
                 venues.append(venue_data)
         
         return {"venues": venues, "count": len(venues)}

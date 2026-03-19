@@ -1,9 +1,13 @@
 import numpy as np
 from typing import List, Dict, Any, Optional
 from math import radians, sin, cos, sqrt, atan2
+from datetime import datetime, timedelta
 from google.cloud.firestore_v1 import Query
 from app.utils.firebase_client import get_db, get_user
 from app.services.embedding_service import generate_session_embedding, generate_user_embedding
+
+_trending_cache: Dict[str, Any] = {"data": None, "fetched_at": None}
+_TRENDING_TTL_HOURS = 6
 
 
 def cosine_similarity(vec1: List[float], vec2: List[float]) -> float:
@@ -142,23 +146,31 @@ def get_recommendations(
 
 
 def get_trending_venues(limit: int = 10) -> List[Dict[str, Any]]:
+    global _trending_cache
+
+    now = datetime.utcnow()
+    if (
+        _trending_cache["data"] is not None
+        and _trending_cache["fetched_at"] is not None
+        and now - _trending_cache["fetched_at"] < timedelta(hours=_TRENDING_TTL_HOURS)
+    ):
+        return _trending_cache["data"][:limit]
+
     db = get_db()
-    
     venues = db.collection("venues") \
         .where("rating", ">=", 4.5) \
         .order_by("rating", direction=Query.DESCENDING) \
         .limit(limit) \
         .stream()
-    
+
     results = []
     for doc in venues:
         venue_data = doc.to_dict()
-
         if venue_data.get("reviews_count", 0) >= 100:
             venue_data["venue_id"] = doc.id
             results.append(venue_data)
-            
             if len(results) >= limit:
                 break
-    
+
+    _trending_cache = {"data": results, "fetched_at": now}
     return results
