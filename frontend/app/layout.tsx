@@ -28,8 +28,8 @@ export const viewport: Viewport = {
 
 export default function RootLayout({ children }: Readonly<{ children: React.ReactNode; }>) {
   return (
-    <html lang="en">
-      <body className={`${sora.variable} antialiased`}>
+    <html lang="en" className={sora.variable}>
+      <body className="antialiased">
         {children}
         <ClientHooks/>
       </body>
