@@ -12,6 +12,7 @@ import { Venue } from "@/lib/types";
 import VenueCard from "@/components/venueCard";
 import VenueDetailsModal from "@/components/venueDetailsModal";
 import { clearSelectionClicks } from "@/lib/freezeDetection";
+import { pickInterventionMessage } from "@/lib/interventionTemplates";
 import { SpinningGlobe } from "@/components/spinningGlobe";
 
 const ACTIVITY_LABELS: Record<string, string> = {
@@ -47,79 +48,44 @@ function Page () {
   const freezeDetection = useFreezeDetection({
     enabled: true,
     recommendations: venues,
-    onFreeze: async (event) => {
+    onFreeze: (event) => {
       if (showInterventionRef.current) return;
-      const userId = localStorage.getItem(LS_USER_ID);
-      if (!userId) return;
 
       trackFreezeDetected(event.rule, event.level, event.context);
 
-      try {
-        // Determine recommended venue BEFORE API call
-        const recommendedVenue = event.context.venue_id
-          ? venues.find(v => v.venue_id === event.context.venue_id)
-          : venues[0];
-        
-        if (!recommendedVenue) {
-          console.error("No venue found for intervention");
-          return;
-        }
+      const recommendedVenue = event.context.venue_id
+        ? venues.find(v => v.venue_id === event.context.venue_id)
+        : venues[0];
 
-        const response = await fetch(
-          `${process.env.NEXT_PUBLIC_API_URL}/api/intervention`,
-          {
-            method: "POST",
-            headers: { "Content-Type": "application/json" },
-            body: JSON.stringify({
-              user_id: userId,
-              trigger_type: event.rule,
-              context: {
-                ...event.context,
-                venue_name: recommendedVenue.name,
-              },
-            }),
-          }
-        );
+      if (!recommendedVenue) return;
 
-        if (!response.ok) {
-          console.error("Intervention API error:", response.status);
-          return;
-        }
+      setInterventionData({
+        level: event.level,
+        message: pickInterventionMessage(event.rule),
+        venue: {
+          id: recommendedVenue.venue_id,
+          name: recommendedVenue.name,
+          photo: recommendedVenue.photo,
+          category: recommendedVenue.category,
+          rating: recommendedVenue.rating,
+          reviews_count: recommendedVenue.reviews_count,
+          price_level: recommendedVenue.price_level,
+          tags: recommendedVenue.tags,
+          solo_reason: recommendedVenue.solo_reason,
+          distance_km: recommendedVenue.distance_km,
+        },
+        triggerRule: event.rule,
+      });
+      setInterventionStartTime(Date.now());
+      setShowIntervention(true);
 
-        const data = await response.json();
-
-        const newInterventionData = {
-          level: event.level,
-          message: data.message,
-          venue: {
-            id: recommendedVenue.venue_id,
-            name: recommendedVenue.name,
-            photo: recommendedVenue.photo,
-            category: recommendedVenue.category,
-            rating: recommendedVenue.rating,
-            reviews_count: recommendedVenue.reviews_count,
-            price_level: recommendedVenue.price_level,
-            tags: recommendedVenue.tags,
-            solo_reason: recommendedVenue.solo_reason,
-            distance_km: recommendedVenue.distance_km,
-          },
-          triggerRule: event.rule,
-        };
-                
-        setInterventionData(newInterventionData);
-        setInterventionStartTime(Date.now());
-        setShowIntervention(true);
-
-        trackInterventionShown(
-          event.level,
-          event.rule,
-          recommendedVenue.venue_id,
-          recommendedVenue.name,
-          0
-        );
-      } catch (error) {
-        console.error("Failed to fetch intervention:", error);
-      }
+      trackInterventionShown(
+        event.level,
+        event.rule,
+        recommendedVenue.venue_id,
+        recommendedVenue.name,
+        0
+      );
     },
   });
 

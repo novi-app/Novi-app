@@ -1,3 +1,4 @@
+import threading
 import numpy as np
 from typing import List, Dict, Any, Optional
 from math import radians, sin, cos, sqrt, atan2
@@ -7,7 +8,9 @@ from app.utils.firebase_client import get_db, get_user
 from app.services.embedding_service import generate_session_embedding, generate_user_embedding
 
 _trending_cache: Dict[str, Any] = {"data": None, "fetched_at": None}
-_TRENDING_TTL_HOURS = 6
+_TRENDING_MEM_TTL_MINUTES = 10    # in-memory L1: avoids Firestore reads on hot path
+_TRENDING_FS_TTL_HOURS = 6        # Firestore L2: persists across restarts and instances
+_TRENDING_CACHE_DOC = ("cache", "trending")
 
 
 def cosine_similarity(vec1: List[float], vec2: List[float]) -> float:
@@ -145,32 +148,100 @@ def get_recommendations(
     return scored_venues[:limit]
 
 
-def get_trending_venues(limit: int = 10) -> List[Dict[str, Any]]:
-    global _trending_cache
-
-    now = datetime.utcnow()
-    if (
-        _trending_cache["data"] is not None
-        and _trending_cache["fetched_at"] is not None
-        and now - _trending_cache["fetched_at"] < timedelta(hours=_TRENDING_TTL_HOURS)
-    ):
-        return _trending_cache["data"][:limit]
-
+def _fetch_trending_from_source(limit: int = 10) -> List[Dict[str, Any]]:
+    """Run the full venues query — only called when both caches are stale."""
     db = get_db()
-    venues = db.collection("venues") \
+    docs = db.collection("venues") \
         .where("rating", ">=", 4.5) \
         .order_by("rating", direction=Query.DESCENDING) \
-        .limit(limit) \
+        .limit(limit * 3) \
         .stream()
-
     results = []
-    for doc in venues:
+    for doc in docs:
         venue_data = doc.to_dict()
         if venue_data.get("reviews_count", 0) >= 100:
             venue_data["venue_id"] = doc.id
             results.append(venue_data)
             if len(results) >= limit:
                 break
-
-    _trending_cache = {"data": results, "fetched_at": now}
     return results
+
+
+def _read_firestore_trending() -> Optional[Dict[str, Any]]:
+    """Read from Firestore cache. Returns the doc dict or None if missing/stale."""
+    try:
+        col, doc_id = _TRENDING_CACHE_DOC
+        doc = get_db().collection(col).document(doc_id).get()
+        if not doc.exists:
+            return None
+        data = doc.to_dict()
+        refreshed_at = data.get("refreshed_at")
+        if not refreshed_at:
+            return None
+        if isinstance(refreshed_at, str):
+            refreshed_at = datetime.fromisoformat(refreshed_at)
+        if datetime.utcnow() - refreshed_at > timedelta(hours=_TRENDING_FS_TTL_HOURS):
+            return None
+        return data
+    except Exception as e:
+        print(f"[trending] Firestore cache read failed: {e}")
+        return None
+
+
+def _write_firestore_trending(venues: List[Dict[str, Any]]) -> None:
+    try:
+        col, doc_id = _TRENDING_CACHE_DOC
+        get_db().collection(col).document(doc_id).set({
+            "venues": venues,
+            "refreshed_at": datetime.utcnow().isoformat(),
+        })
+    except Exception as e:
+        print(f"[trending] Firestore cache write failed: {e}")
+
+
+def refresh_trending_cache(limit: int = 10) -> List[Dict[str, Any]]:
+    """Recompute trending venues and update both caches. Safe to call from cron."""
+    global _trending_cache
+    results = _fetch_trending_from_source(limit)
+    _trending_cache = {"data": results, "fetched_at": datetime.utcnow()}
+    _write_firestore_trending(results)
+    print(f"[trending] Cache refreshed — {len(results)} venues")
+    return results
+
+
+def warm_trending_cache() -> None:
+    """Called at startup: pre-warms in-memory cache from Firestore, or triggers
+    a background refresh if the Firestore cache is also stale."""
+    global _trending_cache
+    try:
+        fs = _read_firestore_trending()
+        if fs:
+            _trending_cache = {"data": fs["venues"], "fetched_at": datetime.utcnow()}
+            print(f"[trending] Cache pre-warmed from Firestore — {len(fs['venues'])} venues")
+        else:
+            print("[trending] Firestore cache stale — background refresh started")
+            threading.Thread(target=refresh_trending_cache, daemon=True).start()
+    except Exception as e:
+        print(f"[trending] Warm failed: {e}")
+
+
+def get_trending_venues(limit: int = 10) -> List[Dict[str, Any]]:
+    global _trending_cache
+    now = datetime.utcnow()
+
+    # L1 — in-memory (10 min): zero-latency on hot path
+    if (
+        _trending_cache["data"] is not None
+        and _trending_cache["fetched_at"] is not None
+        and now - _trending_cache["fetched_at"] < timedelta(minutes=_TRENDING_MEM_TTL_MINUTES)
+    ):
+        return _trending_cache["data"][:limit]
+
+    # L2 — Firestore (6 h): survives restarts and is shared across instances
+    fs = _read_firestore_trending()
+    if fs:
+        _trending_cache = {"data": fs["venues"], "fetched_at": now}
+        return fs["venues"][:limit]
+
+    # L3 — full query + refresh both caches
+    return refresh_trending_cache(limit)

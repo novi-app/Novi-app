@@ -20,13 +20,16 @@ app.add_middleware(
 @app.on_event("startup")
 def startup_event():
     from app.utils.firebase_client import initialize_firebase
-      
+    from app.services.recommendation_engine import warm_trending_cache
+
     try:
         initialize_firebase()
         print("Firebase initialized successfully")
     except Exception as e:
         print(f"Firebase initialization failed: {e}")
         raise
+
+    warm_trending_cache()
 
 
 @app.get("/health")

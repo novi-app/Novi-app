@@ -7,12 +7,13 @@ import { getTrendingVenues, saveVenue, unsaveVenue, getSavedVenues, getRecommend
 import type { TrendingVenue, Venue } from "@/lib/types";
 import { trackRecommendationsViewed } from "@/lib/analytics";
 import { LS_USER_ID, LS_USER_NAME, ACTIVITY } from "@/lib/onboarding";
+import { pickInterventionMessage } from "@/lib/interventionTemplates";
 import TrendingVenueCard, { TrendingVenueCardSkeleton } from "@/components/trendingVenueCard";
 import { SpinningGlobe } from "@/components/spinningGlobe";
 import VenueDetailsModal from "@/components/venueDetailsModal";
 import NoviPickModal from "@/components/noviPickModal";
 import { trackSelectionClick, clearSelectionClicks, setSelectionCooldown } from "@/lib/freezeDetection";
-import { InterventionModal } from "@/components/interventionModal";
+import { InterventionModal, type InterventionVenue } from "@/components/interventionModal";
 
 const location = { latitude: 35.6595, longitude: 139.7004 };
 
@@ -74,6 +75,8 @@ export default function HomePage() {
   const [venuesLoading, setVenuesLoading] = useState(true);
   const [showIntervention, setShowIntervention] = useState(false);
   const [interventionMessage, setInterventionMessage] = useState("");
+  const [interventionVenue, setInterventionVenue] = useState<InterventionVenue | null>(null);
+  const [pendingNoviVenue, setPendingNoviVenue] = useState<Venue | null>(null);
   const [tod, setTod] = useState<"morning" | "afternoon" | "night">("afternoon");
   const heroImage = getHeroImage(tod);
 
@@ -141,19 +144,16 @@ export default function HomePage() {
       const available = pool.filter(v => !shown.includes(v.venue_id));
 
       if (available.length > 0) {
-        // serve from cache — short delay preserves the "searching" feel
         await new Promise(resolve => setTimeout(resolve, 1000));
         const pick = available[0];
         sessionStorage.setItem("cached_novi_shown", JSON.stringify([...shown, pick.venue_id]));
         trackRecommendationsViewed(0, "surprise_me", location);
         setNoviPickVenue(pick);
-        // refresh pool in background when running low
         if (available.length <= 2) {
           sessionStorage.removeItem("cached_novi_pool");
           prefetchNoviPicks();
         }
       } else {
-        // pool exhausted — reset shown history and fetch fresh picks
         sessionStorage.removeItem("cached_novi_pool");
         sessionStorage.removeItem("cached_novi_shown");
         const userId = localStorage.getItem(LS_USER_ID) ?? "anonymous";
@@ -172,19 +172,31 @@ export default function HomePage() {
     }
   };
 
-  const triggerSelectionIntervention = async () => {
-    const userId = localStorage.getItem(LS_USER_ID);
-    try {
-      const res = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/intervention`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ user_id: userId || "anonymous", trigger_type: "selection_indecision", context: {} }),
+  const triggerSelectionIntervention = () => {
+    // Silently grab next pick from pool for the venue card
+    const pool: Venue[] = JSON.parse(sessionStorage.getItem("cached_novi_pool") ?? "[]");
+    const shown: string[] = JSON.parse(sessionStorage.getItem("cached_novi_shown") ?? "[]");
+    const pick = pool.filter(v => !shown.includes(v.venue_id))[0] ?? null;
+    if (pick) {
+      setPendingNoviVenue(pick);
+      setInterventionVenue({
+        id: pick.venue_id,
+        name: pick.name,
+        photo: pick.photo,
+        category: pick.category,
+        rating: pick.rating,
+        reviews_count: pick.reviews_count,
+        price_level: pick.price_level,
+        tags: pick.tags,
+        solo_reason: pick.solo_reason,
+        distance_km: pick.distance_km,
       });
-      const data = res.ok ? await res.json() : null;
-      setInterventionMessage(data?.message ?? "Trust your gut. Pick one and go!");
-    } catch {
-      setInterventionMessage("Trust your gut. Pick one and go!");
+    } else {
+      setPendingNoviVenue(null);
+      setInterventionVenue(null);
     }
+
+    setInterventionMessage(pickInterventionMessage("selection_indecision"));
     setShowIntervention(true);
   };
 
@@ -264,7 +276,13 @@ export default function HomePage() {
   const handleInterventionAccept = () => {
     clearSelectionClicks();
     setShowIntervention(false);
-    router.push(`/recommendations?activity=any&latitude=${location.latitude}&longitude=${location.longitude}`);
+    if (pendingNoviVenue) {
+      const shown: string[] = JSON.parse(sessionStorage.getItem("cached_novi_shown") ?? "[]");
+      sessionStorage.setItem("cached_novi_shown", JSON.stringify([...shown, pendingNoviVenue.venue_id]));
+      setNoviPickVenue(pendingNoviVenue);
+      setPendingNoviVenue(null);
+      setInterventionVenue(null);
+    }
   };
 
   const handleInterventionDismiss = () => {
@@ -299,7 +317,6 @@ export default function HomePage() {
 
       <div className="max-w-md mx-auto pt-2">
 
-        {/* ── Hero image — flat, no rounded corners, no margin top overlap ── */}
         <div className="relative w-full" style={{ height: "clamp(160px, 48vw, 220px)" }}>
           <Image
             src={heroImage}
@@ -505,7 +522,7 @@ export default function HomePage() {
         level="GENTLE"
         message={interventionMessage}
         suggestedAction="Let's Go"
-        venue={null}
+        venue={interventionVenue}
       />
 
       <style jsx>{`

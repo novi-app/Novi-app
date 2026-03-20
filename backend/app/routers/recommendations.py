@@ -1,6 +1,7 @@
+import threading
 from fastapi import APIRouter, HTTPException
 from app.models.venue import RecommendationRequest
-from app.services.recommendation_engine import get_recommendations, get_trending_venues
+from app.services.recommendation_engine import get_recommendations, get_trending_venues, refresh_trending_cache
 
 router = APIRouter(prefix="/api/recommendations", tags=["recommendations"])
 
@@ -45,4 +46,11 @@ async def get_trending():
             status_code=500,
             detail=f"Failed to get trending venues: {str(e)}"
         )
+
+
+@router.post("/trending/refresh")
+async def trigger_trending_refresh():
+    """Trigger a background cache refresh. Call this from a cron job every 6 hours."""
+    threading.Thread(target=refresh_trending_cache, daemon=True).start()
+    return {"status": "refresh started"}
     
