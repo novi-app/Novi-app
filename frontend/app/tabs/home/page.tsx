@@ -92,26 +92,44 @@ export default function HomePage() {
 
   const loadTrendingVenues = async () => {
     const cachedVenues = sessionStorage.getItem("cached_trending_venues");
-    const cachedSavedIds = sessionStorage.getItem("cached_saved_ids");
-    if (cachedVenues && cachedSavedIds) {
+    const cachedIds = sessionStorage.getItem("cached_saved_ids");
+
+    // Show trending immediately if cached — don't block on saved IDs
+    if (cachedVenues) {
       setTrendingVenues(JSON.parse(cachedVenues));
-      setSavedVenueIds(new Set(JSON.parse(cachedSavedIds)));
+      if (cachedIds) setSavedVenueIds(new Set(JSON.parse(cachedIds)));
       setVenuesLoading(false);
+      // Fetch saved IDs in background if they weren't cached
+      if (!cachedIds) {
+        const userId = localStorage.getItem(LS_USER_ID);
+        if (userId) {
+          getSavedVenues(userId)
+            .then(saved => {
+              const ids = saved.venues.map((v: { venue_id: string }) => v.venue_id);
+              setSavedVenueIds(new Set(ids));
+              sessionStorage.setItem("cached_saved_ids", JSON.stringify(ids));
+            })
+            .catch(() => {});
+        }
+      }
       return;
     }
 
+    // Cache miss — fetch trending and saved in parallel
     setVenuesLoading(true);
     try {
-      const result = await getTrendingVenues();
-      const venues = result.venues.slice(0, 5);
+      const userId = localStorage.getItem(LS_USER_ID);
+      const [venueResult, savedResult] = await Promise.all([
+        getTrendingVenues(),
+        userId ? getSavedVenues(userId) : Promise.resolve(null),
+      ]);
+      const venues = venueResult.venues.slice(0, 5);
       setTrendingVenues(venues);
       sessionStorage.setItem("cached_trending_venues", JSON.stringify(venues));
-      const userId = localStorage.getItem(LS_USER_ID);
-      if (userId) {
-        const saved = await getSavedVenues(userId);
-        const savedIds = saved.venues.map((v: { venue_id: string }) => v.venue_id);
-        setSavedVenueIds(new Set(savedIds));
-        sessionStorage.setItem("cached_saved_ids", JSON.stringify(savedIds));
+      if (savedResult) {
+        const ids = savedResult.venues.map((v: { venue_id: string }) => v.venue_id);
+        setSavedVenueIds(new Set(ids));
+        sessionStorage.setItem("cached_saved_ids", JSON.stringify(ids));
       }
     } catch (error) {
       console.error("Failed to load trending venues:", error);
@@ -172,11 +190,43 @@ export default function HomePage() {
     }
   };
 
-  const triggerSelectionIntervention = () => {
-    // Silently grab next pick from pool for the venue card
-    const pool: Venue[] = JSON.parse(sessionStorage.getItem("cached_novi_pool") ?? "[]");
-    const shown: string[] = JSON.parse(sessionStorage.getItem("cached_novi_shown") ?? "[]");
-    const pick = pool.filter(v => !shown.includes(v.venue_id))[0] ?? null;
+  const prefetchCombinations = (activity: string, vibe: string) => {
+    const userId = localStorage.getItem(LS_USER_ID);
+    if (!userId) return;
+    for (const mood of MOODS) {
+      const cacheKey = `prefetch_rec_${activity}_${vibe}_${mood}`;
+      if (sessionStorage.getItem(cacheKey)) continue;
+      getRecommendations(userId, location, activity, { vibe: [vibe], mood })
+        .then(result => {
+          if (result.recommendations?.length > 0) {
+            sessionStorage.setItem(cacheKey, JSON.stringify(result.recommendations));
+          }
+        })
+        .catch(() => {});
+    }
+  };
+
+  const triggerSelectionIntervention = (currentActivity: string | null, currentVibe: string | null) => {
+    // Prefer a prefetched recommendation tailored to the user's current selection
+    let pick: Venue | null = null;
+    if (currentActivity && currentVibe) {
+      for (const mood of MOODS) {
+        const cached = sessionStorage.getItem(`prefetch_rec_${currentActivity}_${currentVibe}_${mood}`);
+        if (cached) {
+          try {
+            const recs: Venue[] = JSON.parse(cached);
+            if (recs.length > 0) { pick = recs[0]; break; }
+          } catch {}
+        }
+      }
+    }
+    // Fall back to the generic Novi pool
+    if (!pick) {
+      const pool: Venue[] = JSON.parse(sessionStorage.getItem("cached_novi_pool") ?? "[]");
+      const shown: string[] = JSON.parse(sessionStorage.getItem("cached_novi_shown") ?? "[]");
+      pick = pool.filter(v => !shown.includes(v.venue_id))[0] ?? null;
+    }
+
     if (pick) {
       setPendingNoviVenue(pick);
       setInterventionVenue({
@@ -204,13 +254,14 @@ export default function HomePage() {
     setSelectedActivity(activity);
     setSelectedVibe(null);
     setSelectedMood(null);
-    if (trackSelectionClick("activity", activity)) triggerSelectionIntervention();
+    if (trackSelectionClick("activity", activity)) triggerSelectionIntervention(activity, null);
   };
 
   const handleVibeClick = (vibe: string) => {
     setSelectedVibe(vibe);
     setSelectedMood(null);
-    if (trackSelectionClick("vibe", vibe)) triggerSelectionIntervention();
+    prefetchCombinations(selectedActivity!, vibe);
+    if (trackSelectionClick("vibe", vibe)) triggerSelectionIntervention(selectedActivity, vibe);
   };
 
   const handleMoodClick = (mood: string) => {
@@ -221,10 +272,16 @@ export default function HomePage() {
     if (!selectedActivity || !selectedVibe || !selectedMood) return;
     setIsLoading(true);
     try {
-      const userId = localStorage.getItem(LS_USER_ID) ?? "anonymous";
       trackRecommendationsViewed(0, selectedActivity, location);
-      const result = await getRecommendations(userId, location, selectedActivity, { vibe: [selectedVibe], mood: selectedMood });
-      sessionStorage.setItem("prefetched_recommendations", JSON.stringify(result.recommendations));
+      const cacheKey = `prefetch_rec_${selectedActivity}_${selectedVibe}_${selectedMood}`;
+      const cached = sessionStorage.getItem(cacheKey);
+      if (cached) {
+        sessionStorage.setItem("prefetched_recommendations", cached);
+      } else {
+        const userId = localStorage.getItem(LS_USER_ID) ?? "anonymous";
+        const result = await getRecommendations(userId, location, selectedActivity, { vibe: [selectedVibe], mood: selectedMood });
+        sessionStorage.setItem("prefetched_recommendations", JSON.stringify(result.recommendations));
+      }
       router.push(
         `/recommendations?activity=${selectedActivity}&vibe=${selectedVibe}&mood=${selectedMood}&latitude=${location.latitude}&longitude=${location.longitude}`
       );
