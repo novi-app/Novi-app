@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { getTrendingVenues, saveVenue, unsaveVenue, getSavedVenues, getRecommendations } from "@/lib/api";
@@ -74,14 +74,17 @@ export default function HomePage() {
   const [venuesLoading, setVenuesLoading] = useState(true);
   const [showIntervention, setShowIntervention] = useState(false);
   const [interventionMessage, setInterventionMessage] = useState("");
-  const tod = getTimeOfDay()
-  const heroImage = useRef(getHeroImage(tod)).current;
+  const [tod, setTod] = useState<"morning" | "afternoon" | "night">("afternoon");
+  const heroImage = getHeroImage(tod);
 
   useEffect(() => {
+    setTod(getTimeOfDay());
+    const todInterval = setInterval(() => setTod(getTimeOfDay()), 60_000);
     const name = localStorage.getItem(LS_USER_NAME);
     if (name) setUserName(name);
     loadTrendingVenues();
     prefetchNoviPicks();
+    return () => clearInterval(todInterval);
   }, []);
 
   const loadTrendingVenues = async () => {
