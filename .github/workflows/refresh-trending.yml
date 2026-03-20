@@ -1,0 +1,15 @@
+name: Refresh Trending Venues Cache
+
+on:
+  schedule:
+    - cron: "0 */6 * * *"  
+  workflow_dispatch:
+
+jobs:
+  refresh:
+    runs-on: ubuntu-latest
+    steps:
+      - name: Trigger cache refresh
+        run: |
+          curl -s -o /dev/null -w "%{http_code}" \
+            -X POST "${{ secrets.API_URL }}/api/recommendations/trending/refresh"
