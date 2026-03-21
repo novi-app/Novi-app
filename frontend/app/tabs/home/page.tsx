@@ -11,7 +11,7 @@ import TrendingVenueCard, { TrendingVenueCardSkeleton } from "@/components/trend
 import { SpinningGlobe } from "@/components/spinningGlobe";
 import VenueDetailsModal from "@/components/venueDetailsModal";
 import NoviPickModal from "@/components/noviPickModal";
-import { trackSelectionClick, clearSelectionClicks, setSelectionCooldown } from "@/lib/freezeDetection";
+import { trackSelectionClick, clearSelectionClicks, setSelectionCooldown, FREEZE_COOLDOWN_KEY } from "@/lib/freezeDetection";
 import { InterventionModal, type InterventionVenue } from "@/components/interventionModal";
 
 const location = { latitude: 35.6595, longitude: 139.7004 };
@@ -105,7 +105,7 @@ export default function HomePage() {
     // Idle nudge: fire if user hasn't selected activity or tapped trending after 30s
     const idleTimer = setTimeout(() => {
       if (selectedActivityRef.current || trendingClickedRef.current) return;
-      const cooldownUntil = parseInt(localStorage.getItem("novi_selection_cooldown") || "0");
+      const cooldownUntil = parseInt(localStorage.getItem(FREEZE_COOLDOWN_KEY) || "0");
       if (Date.now() < cooldownUntil) return;
       // Set cooldown immediately so navigating away without interacting doesn't re-trigger
       setSelectionCooldown(120_000);
@@ -400,7 +400,7 @@ export default function HomePage() {
 
       <div
         className="bg-secondary px-6 text-white"
-        style={{ paddingTop: "max(env(safe-area-inset-top), 2rem)", paddingBottom: "2rem" }}
+        style={{ paddingTop: "max(env(safe-area-inset-top), 2rem)", paddingBottom: "2rem", height: "140px" }}
       >
         <div className="max-w-md mx-auto">
           <div className="flex items-center justify-between mb-2">
@@ -566,7 +566,7 @@ export default function HomePage() {
 
         </div>
 
-        <div className="mb-3 px-6">
+        <div className="mb-4 px-6">
           <h2 className="text-xl font-bold text-gray-900 mb-1">Trending in Tokyo</h2>
           <p className="text-sm text-gray-500">Popular with solo travelers {tod === "night" ? "tonight" : `this ${tod}`}</p>
         </div>

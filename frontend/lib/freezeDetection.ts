@@ -185,8 +185,10 @@ export class FreezeDetector {
   }
 }
 
+export const FREEZE_COOLDOWN_KEY = "novi_freeze_cooldown";
+
 export function trackSelectionClick(type: "activity" | "vibe" | "mood", value: string): boolean {
-  const cooldownUntil = parseInt(localStorage.getItem("novi_selection_cooldown") || "0");
+  const cooldownUntil = parseInt(localStorage.getItem(FREEZE_COOLDOWN_KEY) || "0");
   if (Date.now() < cooldownUntil) {
     return false;
   }
@@ -208,7 +210,7 @@ export function trackSelectionClick(type: "activity" | "vibe" | "mood", value: s
 }
 
 export function setSelectionCooldown(ms = 120000) {
-  localStorage.setItem("novi_selection_cooldown", String(Date.now() + ms));
+  localStorage.setItem(FREEZE_COOLDOWN_KEY, String(Date.now() + ms));
 }
 
 export function clearSelectionClicks() {
@@ -216,7 +218,7 @@ export function clearSelectionClicks() {
 }
 
 export function trackTabSwitch(toTab: "home" | "saved" | "profile"): string | null {
-  const cooldownUntil = parseInt(localStorage.getItem("novi_tab_cooldown") || "0");
+  const cooldownUntil = parseInt(localStorage.getItem(FREEZE_COOLDOWN_KEY) || "0");
   if (Date.now() < cooldownUntil) {
     return null;
   }
@@ -233,11 +235,11 @@ export function trackTabSwitch(toTab: "home" | "saved" | "profile"): string | nu
   const recent = switches.filter((s: any) => Date.now() - s.timestamp < 180000);
   localStorage.setItem("novi_tab_switches", JSON.stringify(recent));
 
-  return recent.length >= 4 ? toTab : null;
+  return recent.length >= 5 ? toTab : null;
 }
 
 export function setTabSwitchCooldown(ms = 120000) {
-  localStorage.setItem("novi_tab_cooldown", String(Date.now() + ms));
+  localStorage.setItem(FREEZE_COOLDOWN_KEY, String(Date.now() + ms));
 }
 
 export function clearTabSwitches() {

@@ -10,6 +10,7 @@ import VenueDetailsModal from "@/components/venueDetailsModal";
 import { InterventionModal, type InterventionVenue } from "@/components/interventionModal";
 import type { Venue } from "@/lib/types";
 import { SpinningGlobe } from "@/components/spinningGlobe";
+import { FREEZE_COOLDOWN_KEY } from "@/lib/freezeDetection";
 
 const USER_LOCATION = { latitude: 35.6595, longitude: 139.7004 };
 
@@ -45,11 +46,11 @@ export default function SavedPage() {
   useEffect(() => {
     const timer = setTimeout(() => {
       if (venueTappedRef.current) return;
-      const cooldownUntil = parseInt(localStorage.getItem("novi_tab_cooldown") || "0");
+      const cooldownUntil = parseInt(localStorage.getItem(FREEZE_COOLDOWN_KEY) || "0");
       if (Date.now() < cooldownUntil) return;
 
       // Set cooldown immediately so navigating away without interacting doesn't re-trigger
-      localStorage.setItem("novi_tab_cooldown", String(Date.now() + 120_000));
+      localStorage.setItem(FREEZE_COOLDOWN_KEY, String(Date.now() + 120_000));
 
       const current = venuesRef.current;
 
@@ -171,7 +172,7 @@ export default function SavedPage() {
       <div className="min-h-screen bg-cream">
         <div
           className="bg-secondary px-6 text-white flex items-center"
-          style={{ paddingTop: "max(env(safe-area-inset-top), 2rem)", height: "120px" }}
+          style={{ paddingTop: "max(env(safe-area-inset-top), 2rem)", height: "140px" }}
         >
           <div className="max-w-md mx-auto w-full flex items-end pb-4">
             <h1 className="text-2xl font-semibold">Saved places</h1>
@@ -241,7 +242,7 @@ export default function SavedPage() {
       <InterventionModal
         isOpen={nudgeVenue !== null}
         onDismiss={() => {
-          localStorage.setItem("novi_tab_cooldown", String(Date.now() + 120_000));
+          localStorage.setItem(FREEZE_COOLDOWN_KEY, String(Date.now() + 120_000));
           setNudgeVenue(null);
           setNudgePendingVenue(null);
         }}
