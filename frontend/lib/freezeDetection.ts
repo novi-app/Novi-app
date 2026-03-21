@@ -63,12 +63,12 @@ export class FreezeDetector {
 
     const viewCount = this.detailsViews[venueId].length;
 
-    if (viewCount >= 7) {
+    if (viewCount >= 10) {
       this.trigger("card_reclicking", "MODERATE", {
         venue_id: venueId,
         view_count: viewCount,
       });
-    } else if (viewCount >= 4) {
+    } else if (viewCount >= 5) {
       this.trigger("card_reclicking", "GENTLE", {
         venue_id: venueId,
         view_count: viewCount,
@@ -127,13 +127,13 @@ export class FreezeDetector {
   }
 
   private checkScroll() {
-    if (this.totalScrollDistance < 600) return;
+    if (this.totalScrollDistance < 800) return;
 
     const directions = this.scrollEvents.map(e => e.direction);
     const ups = directions.filter(d => d === "up").length;
     const downs = directions.filter(d => d === "down").length;
 
-    if (ups >= 4 && downs >= 4) {
+    if (ups >= 6 && downs >= 6) {
       this.trigger("scroll_indecision", "GENTLE", {
         scroll_cycles: Math.min(ups, downs),
         total_scroll_distance: this.totalScrollDistance,
@@ -223,6 +223,7 @@ export function trackTabSwitch(toTab: "home" | "saved" | "profile"): string | nu
     return null;
   }
 
+  const now = Date.now();
   const switches = JSON.parse(localStorage.getItem("novi_tab_switches") || "[]");
 
   const lastSwitch = switches[switches.length - 1];
@@ -230,15 +231,21 @@ export function trackTabSwitch(toTab: "home" | "saved" | "profile"): string | nu
     return null;
   }
 
-  switches.push({ tab: toTab, timestamp: Date.now() });
+  // If the last switch was more than 60s ago, the user took a break — reset the counter
+  if (lastSwitch && now - lastSwitch.timestamp > 60_000) {
+    localStorage.setItem("novi_tab_switches", JSON.stringify([{ tab: toTab, timestamp: now }]));
+    return null;
+  }
 
-  const recent = switches.filter((s: any) => Date.now() - s.timestamp < 180000);
+  switches.push({ tab: toTab, timestamp: now });
+
+  const recent = switches.filter((s: any) => now - s.timestamp < 200000);
   localStorage.setItem("novi_tab_switches", JSON.stringify(recent));
 
-  return recent.length >= 5 ? toTab : null;
+  return recent.length >= 7 ? toTab : null;
 }
 
-export function setTabSwitchCooldown(ms = 120000) {
+export function setTabSwitchCooldown(ms = 180000) {
   localStorage.setItem(FREEZE_COOLDOWN_KEY, String(Date.now() + ms));
 }
 

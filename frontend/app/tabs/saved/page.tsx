@@ -41,7 +41,7 @@ export default function SavedPage() {
     loadSavedVenues();
   }, []);
 
-  // Idle nudge: fires once on mount after 30s if user hasn't tapped anything.
+  // Idle nudge: fires once on mount after 40s if user hasn't tapped anything.
   // Reads venues via ref so unsaves don't cancel/restart the timer.
   useEffect(() => {
     const timer = setTimeout(() => {
@@ -90,7 +90,7 @@ export default function SavedPage() {
           distance_km: pick.distance_km,
         });
       }
-    }, 30_000);
+    }, 40_000);
 
     return () => clearTimeout(timer);
   }, []); // mount-only — venuesRef keeps current value without re-triggering

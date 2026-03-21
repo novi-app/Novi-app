@@ -81,6 +81,8 @@ export default function TabsLayout({ children }: { children: React.ReactNode }) 
 
   const handleInterventionAccept = () => {
     clearTabSwitches();
+    // Grace period — don't nudge again for 2 min after user just got a recommendation
+    setTabSwitchCooldown(120_000);
     if (intervention.pendingVenue) {
       const shown: string[] = JSON.parse(sessionStorage.getItem("cached_novi_shown") ?? "[]");
       sessionStorage.setItem("cached_novi_shown", JSON.stringify([...shown, intervention.pendingVenue.venue_id]));
@@ -101,7 +103,7 @@ export default function TabsLayout({ children }: { children: React.ReactNode }) 
 
   const handleInterventionDismiss = () => {
     clearTabSwitches();
-    setTabSwitchCooldown(120000);
+    setTabSwitchCooldown(180_000);
     setIntervention(CLOSED);
   };
 

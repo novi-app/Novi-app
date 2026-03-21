@@ -118,7 +118,7 @@ export default function HomePage() {
       setSelectedVenue(JSON.parse(pendingDetails));
     }
 
-    // Idle nudge: fire if user hasn't selected activity or tapped trending after 30s
+    // Idle nudge: fire if user hasn't selected activity or tapped trending after 40s
     const idleTimer = setTimeout(() => {
       if (selectedActivityRef.current || trendingClickedRef.current) return;
       const cooldownUntil = parseInt(localStorage.getItem(FREEZE_COOLDOWN_KEY) || "0");
@@ -126,7 +126,7 @@ export default function HomePage() {
       // Set cooldown immediately so navigating away without interacting doesn't re-trigger
       setSelectionCooldown(120_000);
       triggerSelectionIntervention(null, null);
-    }, 30_000);
+    }, 40_000);
 
     return () => {
       clearInterval(todInterval);
@@ -634,7 +634,9 @@ export default function HomePage() {
           onClose={() => setNoviPickVenue(null)}
           onDetails={() => {
             setSelectedVenue(noviPickVenue);
-            setNoviPickVenue(null);
+            // Delay unmounting so VenueDetailsModal slides up over NoviPickModal
+            // rather than over the bare homepage
+            setTimeout(() => setNoviPickVenue(null), 520);
           }}
           onDirections={() => handleDirections(noviPickVenue)}
         />
