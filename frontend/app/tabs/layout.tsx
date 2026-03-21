@@ -60,10 +60,12 @@ export default function TabsLayout({ children }: { children: React.ReactNode }) 
     const shown: string[] = JSON.parse(sessionStorage.getItem("cached_novi_shown") ?? "[]");
     const pick = pool.filter(v => !shown.includes(v.venue_id))[0] ?? null;
 
+    if (!pick) return;
+
     setTimeout(() => setIntervention({
       show: true,
       message: "Still deciding? We think you'll love this one",
-      venue: pick ? {
+      venue: {
         id: pick.venue_id,
         name: pick.name,
         photo: pick.photo,
@@ -74,7 +76,7 @@ export default function TabsLayout({ children }: { children: React.ReactNode }) 
         tags: pick.tags,
         solo_reason: pick.solo_reason,
         distance_km: pick.distance_km,
-      } : null,
+      },
       pendingVenue: pick,
     }), 0);
   }, [pathname, currentTab]);

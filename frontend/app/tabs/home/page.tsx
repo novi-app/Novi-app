@@ -76,8 +76,8 @@ export default function HomePage() {
   const [interventionMessage, setInterventionMessage] = useState("");
   const [interventionVenue, setInterventionVenue] = useState<InterventionVenue | null>(null);
   const [pendingNoviVenue, setPendingNoviVenue] = useState<Venue | null>(null);
-  const [tod, setTod] = useState<"morning" | "afternoon" | "night">("afternoon");
-  const [displayedHero, setDisplayedHero] = useState("/home-afternoon.png");
+  const [tod, setTod] = useState<"morning" | "afternoon" | "night">(getTimeOfDay);
+  const [displayedHero, setDisplayedHero] = useState(() => getHeroImage(getTimeOfDay()));
   const [fadingInHero, setFadingInHero] = useState<string | null>(null);
   const [heroFadeActive, setHeroFadeActive] = useState(false);
   const selectionDismissCount = useRef(0);
@@ -275,25 +275,21 @@ export default function HomePage() {
       pick = pool.filter(v => !shown.includes(v.venue_id))[0] ?? null;
     }
 
-    if (pick) {
-      setPendingNoviVenue(pick);
-      setInterventionVenue({
-        id: pick.venue_id,
-        name: pick.name,
-        photo: pick.photo,
-        category: pick.category,
-        rating: pick.rating,
-        reviews_count: pick.reviews_count,
-        price_level: pick.price_level,
-        tags: pick.tags,
-        solo_reason: pick.solo_reason,
-        distance_km: pick.distance_km,
-      });
-    } else {
-      setPendingNoviVenue(null);
-      setInterventionVenue(null);
-    }
+    if (!pick) return;
 
+    setPendingNoviVenue(pick);
+    setInterventionVenue({
+      id: pick.venue_id,
+      name: pick.name,
+      photo: pick.photo,
+      category: pick.category,
+      rating: pick.rating,
+      reviews_count: pick.reviews_count,
+      price_level: pick.price_level,
+      tags: pick.tags,
+      solo_reason: pick.solo_reason,
+      distance_km: pick.distance_km,
+    });
     setInterventionMessage("Still deciding? We think you'll love this one");
     setShowIntervention(true);
   };
