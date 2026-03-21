@@ -133,7 +133,10 @@ export default function ProfilePage() {
   if (isLoading) {
     return (
       <div className="min-h-screen bg-cream flex items-center justify-center">
-        <SpinningGlobe />
+        <div className="text-center">
+          <SpinningGlobe className="mx-auto mb-1" />
+          <p className="text-gray-600 font-medium">Loading your profile...</p>
+        </div>
       </div>
     );
   }
@@ -160,8 +163,8 @@ export default function ProfilePage() {
         className="bg-secondary px-6 text-white"
         style={{ paddingTop: "max(env(safe-area-inset-top), 1rem)", height: "140px" }}
       >
-        <div className="max-w-md mx-auto h-full flex items-center justify-between px-4">
-          <h1 className="text-2xl font-bold">{profile.username}</h1>
+        <div className="max-w-md mx-auto h-full flex items-center justify-between px-2">
+          <h1 className="text-2xl font-bold truncate min-w-0 mr-3">{profile.username}</h1>
           <div className="flex items-center gap-2 bg-white text-gray-700 px-4 py-2 rounded-full shadow-sm">
             <svg className="w-4 h-4 text-secondary" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />

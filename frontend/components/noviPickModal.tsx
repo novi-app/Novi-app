@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import type { Venue } from "@/lib/types";
 
@@ -14,8 +14,10 @@ interface NoviPickModalProps {
 export default function NoviPickModal({ venue, onClose, onDetails, onDirections }: NoviPickModalProps) {
   const onCloseRef = useRef(onClose);
   onCloseRef.current = onClose;
+  const [visible, setVisible] = useState(false);
 
   useEffect(() => {
+    requestAnimationFrame(() => setVisible(true));
     document.body.style.overflow = "hidden";
     history.pushState({ modal: true }, "");
     const handler = () => onCloseRef.current();
@@ -26,7 +28,10 @@ export default function NoviPickModal({ venue, onClose, onDetails, onDirections 
     };
   }, []);
 
-  const handleClose = () => history.back();
+  const handleClose = () => {
+    setVisible(false);
+    setTimeout(() => history.back(), 480);
+  };
 
   const priceSymbol = venue.price_level > 0 ? "¥".repeat(venue.price_level) : "FREE";
   const walkMins = Math.round((venue.distance_km / 5) * 60);
@@ -39,7 +44,7 @@ export default function NoviPickModal({ venue, onClose, onDetails, onDirections 
   );
 
   return (
-    <div className="fixed inset-0 z-50 flex flex-col bg-cream">
+    <div className={`fixed inset-0 z-50 flex flex-col bg-cream transition-transform duration-500 ease-out ${visible ? "translate-y-0" : "translate-y-full"}`}>
       {/* Teal header banner */}
       <div
         className="bg-secondary px-6 flex flex-col text-white pb-6 relative"
@@ -67,7 +72,7 @@ export default function NoviPickModal({ venue, onClose, onDetails, onDirections 
           {/* Venue image */}
           <div className="relative w-full h-85">
             {venue.photo && (
-              <Image src={venue.photo} alt={venue.name} fill className="object-cover rounded-xl" />
+              <Image src={venue.photo} alt={venue.name} fill className="object-cover rounded-xl" unoptimized />
             )}
           </div>
 

@@ -30,76 +30,53 @@ export default function BudgetPage() {
     if (saved) setSelected(parseInt(saved));
   }, [router]);
 
-  const handleContinue = async () => {
+  const handleContinue = () => {
     if (selected === null || isSubmitting) return;
 
-    setIsSubmitting(true);
     localStorage.setItem(LS_BUDGET, selected.toString());
-    
     const timeOnStep = Math.round((Date.now() - startTime) / 1000);
     trackOnboardingStepCompleted(4, "BUDGET", selected, timeOnStep);
 
-    try {
-      const savedName = localStorage.getItem(LS_USER_NAME);
-      const savedDietary = localStorage.getItem(LS_DIETARY);
-      const savedActivity = localStorage.getItem(LS_ACTIVITY);
-
-      if (!savedName) {
-        alert("Missing name. Please restart onboarding.");
-        router.push("/onboarding/name");
-        return;
-      }
-
-      const dietary = savedDietary ? JSON.parse(savedDietary) : [];
-      const activity = savedActivity ? JSON.parse(savedActivity) : [];
-
-      const response = await fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/user/onboard`, {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({
-          username: savedName,
-          preferences: {
-            dietary,
-            budget: selected,
-            activity_preference: activity
-          }
-        })
-      });
-
-      if (!response.ok) {
-        const errorData = await response.json();
-        console.error("Onboarding failed:", errorData);
-        throw new Error(errorData.detail || "Onboarding failed");
-      }
-
-      const data = await response.json();
-      localStorage.setItem(LS_USER_ID, data.user_id);
-
-      identifyUser(data.user_id, {
-        username: savedName,
-        dietary,
-        budget: selected,
-        activities: activity,
-        signup_date: new Date().toISOString(),
-        device_type: getDeviceType(),
-      });
-
-      const totalTime = Math.round((Date.now() - onboardingStartTime) / 1000);
-      trackOnboardingCompleted(totalTime, savedName, dietary, selected, activity);
-
-      sessionStorage.removeItem("onboarding_start_time");
-      localStorage.removeItem(LS_DIETARY);
-      localStorage.removeItem(LS_ACTIVITY);
-      localStorage.removeItem(LS_BUDGET);
-
-      router.push("/onboarding/finish");
-
-    } catch (error) {
-      console.error("Error during onboarding:", error);
-      alert("Something went wrong. Please try again.");
-    } finally {
-      setIsSubmitting(false);
+    const savedName = localStorage.getItem(LS_USER_NAME);
+    if (!savedName) {
+      alert("Missing name. Please restart onboarding.");
+      router.push("/onboarding/name");
+      return;
     }
+
+    // Navigate immediately — API call runs in background
+    router.push("/onboarding/finish");
+
+    const dietary = (() => { try { return JSON.parse(localStorage.getItem(LS_DIETARY) || "[]"); } catch { return []; } })();
+    const activity = (() => { try { return JSON.parse(localStorage.getItem(LS_ACTIVITY) || "[]"); } catch { return []; } })();
+
+    fetch(`${process.env.NEXT_PUBLIC_API_URL}/api/user/onboard`, {
+      method: "POST",
+      headers: { "Content-Type": "application/json" },
+      body: JSON.stringify({
+        username: savedName,
+        preferences: { dietary, budget: selected, activity_preference: activity }
+      })
+    })
+      .then(res => res.ok ? res.json() : res.json().then(e => Promise.reject(e)))
+      .then(data => {
+        localStorage.setItem(LS_USER_ID, data.user_id);
+        identifyUser(data.user_id, {
+          username: savedName,
+          dietary,
+          budget: selected,
+          activities: activity,
+          signup_date: new Date().toISOString(),
+          device_type: getDeviceType(),
+        });
+        const totalTime = Math.round((Date.now() - onboardingStartTime) / 1000);
+        trackOnboardingCompleted(totalTime, savedName, dietary, selected, activity);
+        sessionStorage.removeItem("onboarding_start_time");
+        localStorage.removeItem(LS_DIETARY);
+        localStorage.removeItem(LS_ACTIVITY);
+        localStorage.removeItem(LS_BUDGET);
+      })
+      .catch(err => console.error("Onboarding API failed:", err));
   };
 
   return (
@@ -165,7 +142,7 @@ export default function BudgetPage() {
       <div className="flex-shrink-0 px-6 max-w-md mx-auto w-full" style={{ paddingBottom: "5dvh", paddingTop: "2dvh" }}>
         <button
           onClick={handleContinue}
-          disabled={selected === null || isSubmitting}
+          disabled={selected === null}
           className="w-full flex items-center justify-center gap-2 font-semibold text-white transition-all active:scale-[0.98] disabled:opacity-50"
           style={{
             height: "7dvh",
@@ -176,7 +153,7 @@ export default function BudgetPage() {
             background: "#E8700A",
           }}
         >
-          {isSubmitting ? "Just a moment…" : "Continue ➔"}
+          Continue ➔
         </button>
       </div>
 

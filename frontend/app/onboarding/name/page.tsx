@@ -61,7 +61,7 @@ export default function NamePage() {
           type="text"
           value={name}
           onChange={e => {
-            const value = e.target.value.replace(/[^\p{L}]/gu, "").slice(0, 25);
+            const value = e.target.value.replace(/[^\p{L}]/gu, "").slice(0, 20);
             setName(value);
           }}
           onKeyDown={e => e.key === "Enter" && handleNext()}

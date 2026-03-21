@@ -8,8 +8,8 @@ from app.utils.firebase_client import get_db, get_user
 from app.services.embedding_service import generate_session_embedding, generate_user_embedding
 
 _trending_cache: Dict[str, Any] = {"data": None, "fetched_at": None}
-_TRENDING_MEM_TTL_MINUTES = 10    # in-memory L1: avoids Firestore reads on hot path
-_TRENDING_FS_TTL_HOURS = 6        # Firestore L2: persists across restarts and instances
+_TRENDING_MEM_TTL_MINUTES = 60    # in-memory L1: avoids Firestore reads on hot path
+_TRENDING_FS_TTL_HOURS = 24       # Firestore L2: persists across restarts and instances
 _TRENDING_CACHE_DOC = ("cache", "trending")
 
 

@@ -1,10 +1,37 @@
 "use client";
 
+import { useEffect, useState } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
+import { getTrendingVenues } from "@/lib/api";
+import { LS_USER_ID } from "@/lib/onboarding";
 
 export default function FinishPage() {
   const router = useRouter();
+  const [ready, setReady] = useState(false);
+
+  useEffect(() => {
+    // Prefetch trending venues while user reads this screen
+    getTrendingVenues()
+      .then(result => {
+        const venues = result.venues.slice(0, 5);
+        localStorage.setItem("cached_trending_venues", JSON.stringify({ venues, savedAt: Date.now() }));
+      })
+      .catch(() => {});
+
+    // Poll until budget page's background API call saves the user_id
+    if (localStorage.getItem(LS_USER_ID)) {
+      setReady(true);
+      return;
+    }
+    const poll = setInterval(() => {
+      if (localStorage.getItem(LS_USER_ID)) {
+        setReady(true);
+        clearInterval(poll);
+      }
+    }, 300);
+    return () => clearInterval(poll);
+  }, []);
 
   return (
     <div className="relative h-[100dvh] w-full overflow-hidden">
@@ -63,8 +90,9 @@ export default function FinishPage() {
         </p>
 
         <button
-          onClick={() => router.replace("/tabs/home")}
-          className="w-full font-semibold text-white transition-all active:scale-[0.98]"
+          onClick={() => ready && router.replace("/tabs/home")}
+          disabled={!ready}
+          className="w-full font-semibold text-white transition-all active:scale-[0.98] disabled:opacity-60"
           style={{
             height: "7dvh",
             minHeight: "48px",
@@ -74,7 +102,7 @@ export default function FinishPage() {
             background: "#0D4A4A",
           }}
         >
-          Ready to explore
+          {ready ? "Ready to explore" : "Setting things up…"}
         </button>
       </div>
 

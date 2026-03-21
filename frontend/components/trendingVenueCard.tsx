@@ -1,6 +1,7 @@
 "use client";
 
 import Image from "next/image";
+import { useState } from "react";
 import type { TrendingVenue } from "@/lib/types";
 
 interface TrendingVenueCardProps {
@@ -58,6 +59,7 @@ export default function TrendingVenueCard({
   onBookmark,
   isSaved,
 }: TrendingVenueCardProps) {
+  const [imgLoaded, setImgLoaded] = useState(false);
   const mins = walkMinutes(venue);
   const displayTag = venue.tags?.find((t) => t !== "Solo Friendly") ?? venue.tags?.[0];
 
@@ -72,8 +74,16 @@ export default function TrendingVenueCard({
         className="relative w-full flex-shrink-0 active:opacity-90 transition-opacity"
         style={{ height: "clamp(140px, 42vw, 180px)" }}
       >
+        {!imgLoaded && <div className="absolute inset-0 bg-gray-200 animate-pulse" />}
         {venue.photo ? (
-          <Image src={venue.photo} alt={venue.name} fill className="object-cover" />
+          <Image
+            src={venue.photo}
+            alt={venue.name}
+            fill
+            className={`object-cover transition-opacity duration-300 ${imgLoaded ? "opacity-100" : "opacity-0"}`}
+            unoptimized
+            onLoad={() => setImgLoaded(true)}
+          />
         ) : (
           <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300" />
         )}

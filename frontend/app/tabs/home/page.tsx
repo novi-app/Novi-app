@@ -77,10 +77,26 @@ export default function HomePage() {
   const [interventionVenue, setInterventionVenue] = useState<InterventionVenue | null>(null);
   const [pendingNoviVenue, setPendingNoviVenue] = useState<Venue | null>(null);
   const [tod, setTod] = useState<"morning" | "afternoon" | "night">("afternoon");
+  const [displayedHero, setDisplayedHero] = useState("/home-afternoon.png");
+  const [fadingInHero, setFadingInHero] = useState<string | null>(null);
+  const [heroFadeActive, setHeroFadeActive] = useState(false);
   const selectionDismissCount = useRef(0);
   const selectedActivityRef = useRef<string | null>(null);
   const trendingClickedRef = useRef(false);
   const heroImage = getHeroImage(tod);
+
+  // Crossfade when hero image changes
+  useEffect(() => {
+    if (heroImage === displayedHero) return;
+    setFadingInHero(heroImage);
+    requestAnimationFrame(() => requestAnimationFrame(() => setHeroFadeActive(true)));
+    const t = setTimeout(() => {
+      setDisplayedHero(heroImage);
+      setFadingInHero(null);
+      setHeroFadeActive(false);
+    }, 800);
+    return () => clearTimeout(t);
+  }, [heroImage]); // eslint-disable-line react-hooks/exhaustive-deps
 
   useEffect(() => {
     setTod(getTimeOfDay());
@@ -119,31 +135,35 @@ export default function HomePage() {
   }, []);
 
   const loadTrendingVenues = async () => {
-    const cachedVenues = sessionStorage.getItem("cached_trending_venues");
+    const TRENDING_TTL_MS = 60 * 60 * 1000; // 1 hour
+    const raw = localStorage.getItem("cached_trending_venues");
     const cachedIds = sessionStorage.getItem("cached_saved_ids");
 
-    // Show trending immediately if cached — don't block on saved IDs
-    if (cachedVenues) {
-      setTrendingVenues(JSON.parse(cachedVenues));
-      if (cachedIds) setSavedVenueIds(new Set(JSON.parse(cachedIds)));
-      setVenuesLoading(false);
-      // Fetch saved IDs in background if they weren't cached
-      if (!cachedIds) {
-        const userId = localStorage.getItem(LS_USER_ID);
-        if (userId) {
-          getSavedVenues(userId)
-            .then(saved => {
-              const ids = saved.venues.map((v: { venue_id: string }) => v.venue_id);
-              setSavedVenueIds(new Set(ids));
-              sessionStorage.setItem("cached_saved_ids", JSON.stringify(ids));
-            })
-            .catch(() => {});
+    if (raw) {
+      try {
+        const { venues, savedAt } = JSON.parse(raw);
+        if (Date.now() - savedAt < TRENDING_TTL_MS) {
+          setTrendingVenues(venues);
+          if (cachedIds) setSavedVenueIds(new Set(JSON.parse(cachedIds)));
+          setVenuesLoading(false);
+          if (!cachedIds) {
+            const userId = localStorage.getItem(LS_USER_ID);
+            if (userId) {
+              getSavedVenues(userId)
+                .then(saved => {
+                  const ids = saved.venues.map((v: { venue_id: string }) => v.venue_id);
+                  setSavedVenueIds(new Set(ids));
+                  sessionStorage.setItem("cached_saved_ids", JSON.stringify(ids));
+                })
+                .catch(() => {});
+            }
+          }
+          return;
         }
-      }
-      return;
+      } catch {}
     }
 
-    // Cache miss — fetch trending and saved in parallel
+    // Cache miss or expired — fetch trending and saved in parallel
     setVenuesLoading(true);
     try {
       const userId = localStorage.getItem(LS_USER_ID);
@@ -153,7 +173,7 @@ export default function HomePage() {
       ]);
       const venues = venueResult.venues.slice(0, 5);
       setTrendingVenues(venues);
-      sessionStorage.setItem("cached_trending_venues", JSON.stringify(venues));
+      localStorage.setItem("cached_trending_venues", JSON.stringify({ venues, savedAt: Date.now() }));
       if (savedResult) {
         const ids = savedResult.venues.map((v: { venue_id: string }) => v.venue_id);
         setSavedVenueIds(new Set(ids));
@@ -404,8 +424,8 @@ export default function HomePage() {
       >
         <div className="max-w-md mx-auto">
           <div className="flex items-center justify-between mb-2">
-            <h1 className="text-3xl font-display font-bold">Hi {userName},</h1>
-            <button className="flex items-center gap-1.5 px-3 py-1.5 rounded-full bg-white/90 transition-all active:scale-95">
+            <h1 className="text-2xl font-display font-bold truncate min-w-0 mr-3">Hi {userName},</h1>
+            <button className="flex items-center gap-1.5 px-3 py-2 rounded-full bg-white/90 transition-all active:scale-95">
               <svg className="w-3.5 h-3.5 shrink-0" fill="none" stroke="#0B4F4A" viewBox="0 0 24 24">
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
                 <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
@@ -419,14 +439,25 @@ export default function HomePage() {
 
       <div className="max-w-md mx-auto pt-2">
 
-        <div className="relative w-full" style={{ height: "clamp(160px, 48vw, 220px)" }}>
+        <div className="relative w-full overflow-hidden" style={{ height: "clamp(160px, 48vw, 220px)" }}>
           <Image
-            src={heroImage}
+            src={displayedHero}
             alt="Tokyo"
             fill
             className="object-cover"
             priority
+            unoptimized
           />
+          {fadingInHero && (
+            <Image
+              src={fadingInHero}
+              alt="Tokyo"
+              fill
+              className="object-cover transition-opacity duration-700 ease-in-out"
+              style={{ opacity: heroFadeActive ? 1 : 0 }}
+              unoptimized
+            />
+          )}
         </div>
 
         <div className="pt-6 pb-2 px-6">

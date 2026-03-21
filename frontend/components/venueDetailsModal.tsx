@@ -1,6 +1,6 @@
 "use client";
 
-import { useEffect, useRef } from "react";
+import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import type { Venue } from "@/lib/types";
 
@@ -26,8 +26,10 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): nu
 
 export default function VenueDetailsModal({ venue, onClose, onDirections }: VenueDetailsModalProps) {
   const onCloseRef = useRef(onClose);
+  const [visible, setVisible] = useState(false);
 
   useEffect(() => {
+    requestAnimationFrame(() => setVisible(true));
     document.body.style.overflow = "hidden";
     history.pushState({ modal: true }, "");
     const handler = () => onCloseRef.current();
@@ -38,7 +40,10 @@ export default function VenueDetailsModal({ venue, onClose, onDirections }: Venu
     };
   }, []);
 
-  const handleClose = () => history.back();
+  const handleClose = () => {
+    setVisible(false);
+    setTimeout(() => history.back(), 480);
+  };
 
   const priceSymbol = venue.price_level > 0 ? "¥".repeat(venue.price_level) : "FREE";
 
@@ -50,17 +55,17 @@ export default function VenueDetailsModal({ venue, onClose, onDirections }: Venu
 
   return (
     <div
-      className="fixed inset-0 z-50 flex flex-col justify-end bg-black/90"
+      className={`fixed inset-0 z-50 flex flex-col justify-end transition-opacity duration-500 ${visible ? "opacity-100 bg-black/90" : "opacity-0 bg-black/0"}`}
       onClick={handleClose}
     >
       <div
-        className="bg-cream flex flex-col h-[100%]"
+        className={`bg-cream flex flex-col h-[100%] transition-transform duration-500 ease-out ${visible ? "translate-y-0" : "translate-y-full"}`}
         onClick={(e) => e.stopPropagation()}
       >
         <div className="flex-1 overflow-y-auto pb-6" style={{ scrollbarWidth: "none" }}>
           <div className="relative w-full h-72 bg-gray-100 mb-4">
             {venue.photo && (
-              <Image src={venue.photo} alt={venue.name} fill className="object-cover" />
+              <Image src={venue.photo} alt={venue.name} fill className="object-cover" unoptimized />
             )}
             <button
               onClick={handleClose}

@@ -198,9 +198,9 @@ export default function TermsPage() {
         <section className="space-y-2">
           <h3 className="text-md font-bold text-black uppercase tracking-wide">Questions?</h3>
           <p className="text-md text-black"> We genuinely want to hear from you — whether it's a concern, a request, or just feedback.
-            <p><a href="mailto:noviteam.ai@gmail.com" className="underline" style={{ color: "#0B4F4A" }}>
+            <a href="mailto:noviteam.ai@gmail.com" className="underline" style={{ color: "#0B4F4A" }}>
               noviteam.ai@gmail.com
-            </a> </p>
+            </a>
             
           </p>
           <hr className="border-4 border-white"/>

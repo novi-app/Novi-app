@@ -104,7 +104,7 @@ export default function VenueCard({
       <div className="bg-white rounded-2xl overflow-hidden">
         <div className="relative h-64 bg-gray-100">
           {venue.photo ? (
-            <Image src={venue.photo} alt={venue.name} fill className="object-cover" priority />
+            <Image src={venue.photo} alt={venue.name} fill className="object-cover" priority unoptimized />
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300" />
           )}
@@ -130,7 +130,7 @@ export default function VenueCard({
       <div className="flex p-3 gap-3 mb-2">
         <div className="relative w-24 h-24 flex-shrink-0 rounded-xl overflow-hidden bg-gray-100">
           {venue.photo ? (
-            <Image src={venue.photo} alt={venue.name} fill className="object-cover" />
+            <Image src={venue.photo} alt={venue.name} fill className="object-cover" unoptimized />
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300" />
           )}
