@@ -476,7 +476,7 @@ export default function HomePage() {
 
           {selectedVibe && (
             <div className="mt-5 animate-fadeIn">
-              <h3 className="text-base text-gray-900 mb-3">What does tonight call for?</h3>
+              <h3 className="text-base text-gray-900 mb-3">{tod === "night" ? "What does tonight call for?" : `What does this ${tod} call for?`}</h3>
               <div className="grid grid-cols-3 gap-2">
                 {MOODS.map(mood => {
                   const isSelected = selectedMood === mood;
@@ -529,7 +529,7 @@ export default function HomePage() {
 
         <div className="mb-3 px-6">
           <h2 className="text-xl font-bold text-gray-900 mb-1">Trending in Tokyo</h2>
-          <p className="text-sm text-gray-500">Popular with solo travelers this {tod}</p>
+          <p className="text-sm text-gray-500">Popular with solo travelers {tod === "night" ? "tonight" : `this ${tod}`}</p>
         </div>
 
         <div
