@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { getTrendingVenues, saveVenue, unsaveVenue, getSavedVenues, getRecommendations } from "@/lib/api";
@@ -78,6 +78,7 @@ export default function HomePage() {
   const [interventionVenue, setInterventionVenue] = useState<InterventionVenue | null>(null);
   const [pendingNoviVenue, setPendingNoviVenue] = useState<Venue | null>(null);
   const [tod, setTod] = useState<"morning" | "afternoon" | "night">("afternoon");
+  const selectionDismissCount = useRef(0);
   const heroImage = getHeroImage(tod);
 
   useEffect(() => {
@@ -344,7 +345,12 @@ export default function HomePage() {
 
   const handleInterventionDismiss = () => {
     clearSelectionClicks();
-    setSelectionCooldown(120000); // 2-minute cooldown after dismissal
+    selectionDismissCount.current += 1;
+    const cooldown =
+      selectionDismissCount.current === 1 ? 120_000 :
+        selectionDismissCount.current === 2 ? 240_000 :
+          1_800_000;
+    setSelectionCooldown(cooldown);
     setShowIntervention(false);
   };
 

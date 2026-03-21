@@ -64,6 +64,7 @@ export default function TabsLayout({ children }: { children: React.ReactNode }) 
   }, [pathname, currentTab]);
 
   const handleInterventionAccept = () => {
+    clearTabSwitches();
     if (intervention.pendingVenue) {
       const shown: string[] = JSON.parse(sessionStorage.getItem("cached_novi_shown") ?? "[]");
       sessionStorage.setItem("cached_novi_shown", JSON.stringify([...shown, intervention.pendingVenue.venue_id]));

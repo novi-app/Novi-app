@@ -109,10 +109,11 @@ function Page () {
       console.log("📊 Tracking recommendations viewed:", venues.length);
       trackRecommendationsViewed(venues.length, activity, { latitude, longitude });
       setHasTrackedView(true);
-      
       clearSelectionClicks();
+      // Register all visible venues so exploration_stall can fire
+      venues.forEach(v => freezeDetection.recordCardView(v.venue_id));
     }
-  }, [isLoading, venues, activity, latitude, longitude, hasTrackedView]);
+  }, [isLoading, venues, activity, latitude, longitude, hasTrackedView]); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadRecommendations = async () => {
     setIsLoading(true);

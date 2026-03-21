@@ -95,9 +95,9 @@ export class FreezeDetector {
     this.dismissCount++;
 
     const cooldown =
-      this.dismissCount === 1 ? 120000 :
-        this.dismissCount === 2 ? 240000 :
-          Infinity;
+      this.dismissCount === 1 ? 120_000 :
+        this.dismissCount === 2 ? 240_000 :
+          1_800_000; // 30 min cap — never permanently silent
 
     this.lastTriggerTime = Date.now() + cooldown;
   }
@@ -109,7 +109,7 @@ export class FreezeDetector {
   }
 
   private checkExploration(now: number) {
-    if (this.cardsViewed.size < 7) return;
+    if (this.cardsViewed.size < 3) return;
 
     const idle = now - this.lastActivity;
 
@@ -133,7 +133,7 @@ export class FreezeDetector {
     const ups = directions.filter(d => d === "up").length;
     const downs = directions.filter(d => d === "down").length;
 
-    if (ups >= 7 && downs >= 7) {
+    if (ups >= 4 && downs >= 4) {
       this.trigger("scroll_indecision", "GENTLE", {
         scroll_cycles: Math.min(ups, downs),
         total_scroll_distance: this.totalScrollDistance,
@@ -192,12 +192,19 @@ export function trackSelectionClick(type: "activity" | "vibe" | "mood", value: s
   }
 
   const clicks = JSON.parse(localStorage.getItem("novi_selection_clicks") || "[]");
+
+  // Don't count re-clicking the same type+value — that's not indecision
+  const last = clicks.filter((c: any) => c.type === type).at(-1);
+  if (last?.value === value) {
+    return false;
+  }
+
   clicks.push({ type, value, timestamp: Date.now() });
 
   const recent = clicks.filter((c: any) => Date.now() - c.timestamp < 300000);
   localStorage.setItem("novi_selection_clicks", JSON.stringify(recent));
 
-  return recent.length >= 4;
+  return recent.length >= 6;
 }
 
 export function setSelectionCooldown(ms = 120000) {
