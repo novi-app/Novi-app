@@ -133,31 +133,43 @@ export default function ProfilePage() {
   return (
     <div className="min-h-screen bg-cream pb-6">
       <div
-        className="bg-white px-6 pb-6 shadow-sm"
-        style={{ paddingTop: "max(env(safe-area-inset-top), 2rem)" }}
+        className="bg-secondary px-6 text-white"
+        style={{
+          paddingTop: "max(env(safe-area-inset-top), 2rem)",
+          height: "140px",
+        }}
       >
-        <div className="max-w-md mx-auto">
-          <div className="flex items-center gap-4">
-            <div className="w-16 h-16 rounded-full bg-secondary flex items-center justify-center text-white text-2xl font-bold">
-              {profile.username.charAt(0).toUpperCase()}
-            </div>
-            <div>
-              <h1 className="text-2xl font-bold text-gray-900">{profile.username}</h1>
-              <div className="flex items-center gap-1 text-sm text-gray-600 mt-1">
-                <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z" />
-                  <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
-                </svg>
-                Currently in Tokyo
-              </div>
-            </div>
+        <div className="max-w-md mx-auto h-full flex items-center justify-between px-4  ">
+          <h1 className="text-[22px] font-bold">{profile.username}</h1>
+
+          <div className="flex items-center gap-2 bg-white text-[#4B5563] px-4 py-2 rounded-full shadow-sm">
+            <svg
+              className="w-4 h-4 text-secondary"
+              fill="none"
+              stroke="currentColor"
+              viewBox="0 0 24 24"
+            >
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M17.657 16.657L13.414 20.9a1.998 1.998 0 01-2.827 0l-4.244-4.243a8 8 0 1111.314 0z"
+              />
+              <path
+                strokeLinecap="round"
+                strokeLinejoin="round"
+                strokeWidth={2}
+                d="M15 11a3 3 0 11-6 0 3 3 0 016 0z"
+              />
+            </svg>
+            <span className="text-sm  text- black font-medium">Tokyo</span>
           </div>
         </div>
       </div>
 
       <div className="px-6 max-w-md mx-auto mt-6 space-y-6">
         <div>
-          <h2 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-3">
+          <h2 className="text-xs font-semibold text-[#8B8F97] uppercase tracking-wider mb-3">
             Preferences
           </h2>
           <div className="bg-white rounded-2xl divide-y divide-gray-100 shadow-sm">
@@ -174,7 +186,7 @@ export default function ProfilePage() {
             <PreferenceRow
               label="Never show"
               value={excludedLabels}
-              onClick={() => setEditingField("excluded")}
+              onClick={() => setEditingField("excluded")} 
             />
           </div>
         </div>
@@ -218,18 +230,31 @@ export default function ProfilePage() {
         >
           <div className="space-y-2">
             {DIETARY_OPTIONS.map((option) => {
-              const isSelected = profile.preferences.dietary.includes(option.value);
+              const isSelected = profile.preferences.dietary.includes(
+                option.value,
+              );
               return (
                 <button
                   key={option.value}
                   onClick={() => {
                     const newDietary = isSelected
-                      ? profile.preferences.dietary.filter((d) => d !== option.value)
-                      : [...profile.preferences.dietary.filter((d) => d !== "none"), option.value];
-                    handleUpdatePreferences({ dietary: option.value === "none" ? ["none"] : newDietary });
+                      ? profile.preferences.dietary.filter(
+                          (d) => d !== option.value,
+                        )
+                      : [
+                          ...profile.preferences.dietary.filter(
+                            (d) => d !== "none",
+                          ),
+                          option.value,
+                        ];
+                    handleUpdatePreferences({
+                      dietary: option.value === "none" ? ["none"] : newDietary,
+                    });
                   }}
                   className={`w-full text-left px-4 py-3 rounded-xl ${
-                    isSelected ? "bg-secondary text-white" : "bg-gray-50 text-gray-700"
+                    isSelected
+                      ? "bg-secondary text-white"
+                      : "bg-gray-50 text-gray-700"
                   }`}
                 >
                   {option.label}
@@ -246,7 +271,9 @@ export default function ProfilePage() {
             {BUDGET_OPTIONS.map((option) => (
               <button
                 key={option.value}
-                onClick={() => handleUpdatePreferences({ budget: option.value })}
+                onClick={() =>
+                  handleUpdatePreferences({ budget: option.value })
+                }
                 className={`w-full text-left px-4 py-3 rounded-xl flex items-center gap-3 ${
                   profile.preferences.budget === option.value
                     ? "bg-secondary text-white"
@@ -274,10 +301,14 @@ export default function ProfilePage() {
                     const newExcluded = isSelected
                       ? excluded.filter((c) => c !== option.value)
                       : [...excluded, option.value];
-                    handleUpdatePreferences({ excluded_categories: newExcluded });
+                    handleUpdatePreferences({
+                      excluded_categories: newExcluded,
+                    });
                   }}
                   className={`w-full text-left px-4 py-3 rounded-xl ${
-                    isSelected ? "bg-secondary text-white" : "bg-gray-50 text-gray-700"
+                    isSelected
+                      ? "bg-secondary text-white"
+                      : "bg-gray-50 text-gray-700"
                   }`}
                 >
                   {option.label}
