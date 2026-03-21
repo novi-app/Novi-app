@@ -12,7 +12,6 @@ import { Venue } from "@/lib/types";
 import VenueCard from "@/components/venueCard";
 import VenueDetailsModal from "@/components/venueDetailsModal";
 import { clearSelectionClicks } from "@/lib/freezeDetection";
-import { pickInterventionMessage } from "@/lib/interventionTemplates";
 import { SpinningGlobe } from "@/components/spinningGlobe";
 
 const ACTIVITY_LABELS: Record<string, string> = {
@@ -61,7 +60,7 @@ function Page () {
 
       setInterventionData({
         level: event.level,
-        message: pickInterventionMessage(event.rule),
+        message: "Still deciding? We think you'll love this one",
         venue: {
           id: recommendedVenue.venue_id,
           name: recommendedVenue.name,
@@ -268,6 +267,13 @@ function Page () {
     setShowIntervention(false);
   };
 
+  const handleInterventionDetails = () => {
+    if (!interventionData?.venue) return;
+    const venue = venues.find(v => v.venue_id === interventionData.venue.id);
+    setShowIntervention(false);
+    if (venue) setSelectedVenue(venue);
+  };
+
   const topVenue = venues[0];
   const alternatives = venues.slice(1, 3);
   const moreOptions = venues.slice(3);
@@ -426,6 +432,7 @@ function Page () {
           isOpen={showIntervention}
           onDismiss={handleInterventionDismiss}
           onAccept={handleInterventionAccept}
+          onDetails={handleInterventionDetails}
           level={interventionData.level}
           message={interventionData.message}
           suggestedAction="Let's Go"

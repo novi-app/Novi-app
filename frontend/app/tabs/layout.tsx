@@ -6,8 +6,10 @@ import BottomNav from "@/components/bottomNav";
 import { InterventionModal, type InterventionVenue } from "@/components/interventionModal";
 import { trackTabSwitch, clearTabSwitches, setTabSwitchCooldown } from "@/lib/freezeDetection";
 import { LS_USER_ID } from "@/lib/onboarding";
-import { pickInterventionMessage } from "@/lib/interventionTemplates";
+import { getRecommendations } from "@/lib/api";
 import type { Venue } from "@/lib/types";
+
+const TOKYO = { latitude: 35.6595, longitude: 139.7004 };
 
 interface InterventionState {
   show: boolean;
@@ -36,6 +38,20 @@ export default function TabsLayout({ children }: { children: React.ReactNode }) 
     if (!userId) router.replace("/onboarding/intro/1");
   }, [router]);
 
+  // Ensure Novi pool is populated regardless of which tab the user lands on
+  useEffect(() => {
+    if (sessionStorage.getItem("cached_novi_pool")) return;
+    const userId = localStorage.getItem(LS_USER_ID);
+    if (!userId) return;
+    getRecommendations(userId, TOKYO, "any")
+      .then(result => {
+        if (result.recommendations.length > 0) {
+          sessionStorage.setItem("cached_novi_pool", JSON.stringify(result.recommendations.slice(0, 5)));
+        }
+      })
+      .catch(() => {});
+  }, []);
+
   // Track tab switches
   useEffect(() => {
     if (!trackTabSwitch(currentTab)) return;
@@ -46,7 +62,7 @@ export default function TabsLayout({ children }: { children: React.ReactNode }) 
 
     setTimeout(() => setIntervention({
       show: true,
-      message: pickInterventionMessage("tab_switching"),
+      message: "Still deciding? We think you'll love this one",
       venue: pick ? {
         id: pick.venue_id,
         name: pick.name,
@@ -74,6 +90,15 @@ export default function TabsLayout({ children }: { children: React.ReactNode }) 
     if (currentTab !== "home") router.push("/tabs/home");
   };
 
+  const handleInterventionDetails = () => {
+    clearTabSwitches();
+    if (intervention.pendingVenue) {
+      sessionStorage.setItem("pending_novi_details", JSON.stringify(intervention.pendingVenue));
+    }
+    setIntervention(CLOSED);
+    if (currentTab !== "home") router.push("/tabs/home");
+  };
+
   const handleInterventionDismiss = () => {
     clearTabSwitches();
     setTabSwitchCooldown(120000);
@@ -89,6 +114,7 @@ export default function TabsLayout({ children }: { children: React.ReactNode }) 
         isOpen={intervention.show}
         onDismiss={handleInterventionDismiss}
         onAccept={handleInterventionAccept}
+        onDetails={handleInterventionDetails}
         level="GENTLE"
         message={intervention.message}
         suggestedAction="Let's Go"

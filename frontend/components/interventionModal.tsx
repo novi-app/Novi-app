@@ -21,6 +21,7 @@ interface InterventionModalProps {
   isOpen: boolean;
   onDismiss: () => void;
   onAccept: () => void;
+  onDetails?: () => void;
   level: "GENTLE" | "MODERATE" | "URGENT";
   message: string;
   suggestedAction: string;
@@ -59,6 +60,7 @@ export function InterventionModal({
   isOpen,
   onDismiss,
   onAccept,
+  onDetails,
   level,
   message,
   venue,
@@ -258,7 +260,7 @@ export function InterventionModal({
 
                 <div className="flex gap-3 mx-4 mb-6">
                   <button
-                    onClick={handleDismiss}
+                    onClick={onDetails ?? handleDismiss}
                     className="flex-1 h-14 rounded-full font-semibold transition-all active:scale-[0.97] border-2 bg-transparent"
                     style={{ color: "#E8700A", borderColor: "#E8700A" }}
                   >

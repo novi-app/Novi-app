@@ -7,7 +7,6 @@ import { getTrendingVenues, saveVenue, unsaveVenue, getSavedVenues, getRecommend
 import type { TrendingVenue, Venue } from "@/lib/types";
 import { trackRecommendationsViewed } from "@/lib/analytics";
 import { LS_USER_ID, LS_USER_NAME, ACTIVITY } from "@/lib/onboarding";
-import { pickInterventionMessage } from "@/lib/interventionTemplates";
 import TrendingVenueCard, { TrendingVenueCardSkeleton } from "@/components/trendingVenueCard";
 import { SpinningGlobe } from "@/components/spinningGlobe";
 import VenueDetailsModal from "@/components/venueDetailsModal";
@@ -88,6 +87,19 @@ export default function HomePage() {
     if (name) setUserName(name);
     loadTrendingVenues();
     prefetchNoviPicks();
+
+    // Pick up venue passed from tab-switch intervention
+    const pendingPick = sessionStorage.getItem("pending_novi_pick");
+    if (pendingPick) {
+      sessionStorage.removeItem("pending_novi_pick");
+      setNoviPickVenue(JSON.parse(pendingPick));
+    }
+    const pendingDetails = sessionStorage.getItem("pending_novi_details");
+    if (pendingDetails) {
+      sessionStorage.removeItem("pending_novi_details");
+      setSelectedVenue(JSON.parse(pendingDetails));
+    }
+
     return () => clearInterval(todInterval);
   }, []);
 
@@ -247,7 +259,7 @@ export default function HomePage() {
       setInterventionVenue(null);
     }
 
-    setInterventionMessage(pickInterventionMessage("selection_indecision"));
+    setInterventionMessage("Still deciding? We think you'll love this one");
     setShowIntervention(true);
   };
 
@@ -338,6 +350,16 @@ export default function HomePage() {
       const shown: string[] = JSON.parse(sessionStorage.getItem("cached_novi_shown") ?? "[]");
       sessionStorage.setItem("cached_novi_shown", JSON.stringify([...shown, pendingNoviVenue.venue_id]));
       setNoviPickVenue(pendingNoviVenue);
+      setPendingNoviVenue(null);
+      setInterventionVenue(null);
+    }
+  };
+
+  const handleInterventionDetails = () => {
+    clearSelectionClicks();
+    setShowIntervention(false);
+    if (pendingNoviVenue) {
+      setSelectedVenue(pendingNoviVenue);
       setPendingNoviVenue(null);
       setInterventionVenue(null);
     }
@@ -582,6 +604,7 @@ export default function HomePage() {
         isOpen={showIntervention}
         onDismiss={handleInterventionDismiss}
         onAccept={handleInterventionAccept}
+        onDetails={handleInterventionDetails}
         level="GENTLE"
         message={interventionMessage}
         suggestedAction="Let's Go"
