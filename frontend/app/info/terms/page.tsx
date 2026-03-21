@@ -6,7 +6,7 @@ export default function TermsPage() {
   const router = useRouter();
 
   return (
-    <div className="min-h-screen bg-white">
+    <div className="min-h-screen bg-white animate-page-in">
       {/* Header */}
       <div
         className="bg-white px-6 flex items-center gap-4"

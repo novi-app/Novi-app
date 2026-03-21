@@ -1,6 +1,6 @@
 "use client";
 
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useLayoutEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { getTrendingVenues, saveVenue, unsaveVenue, getSavedVenues, getRecommendations } from "@/lib/api";
@@ -98,11 +98,22 @@ export default function HomePage() {
     return () => clearTimeout(t);
   }, [heroImage]); // eslint-disable-line react-hooks/exhaustive-deps
 
+  // Runs before first paint — prevents "there" flash on both SPA navigation and hard refresh
+  useLayoutEffect(() => {
+    const name = localStorage.getItem(LS_USER_NAME);
+    if (name) { setUserName(name); return; }
+    try {
+      const raw = localStorage.getItem("cached_profile");
+      if (raw) {
+        const { data } = JSON.parse(raw);
+        if (data?.username) setUserName(data.username);
+      }
+    } catch {}
+  }, []);
+
   useEffect(() => {
     setTod(getTimeOfDay());
     const todInterval = setInterval(() => setTod(getTimeOfDay()), 60_000);
-    const name = localStorage.getItem(LS_USER_NAME);
-    if (name) setUserName(name);
     loadTrendingVenues();
     prefetchNoviPicks();
 
@@ -132,7 +143,7 @@ export default function HomePage() {
       clearInterval(todInterval);
       clearTimeout(idleTimer);
     };
-  }, []);
+  }, []); // eslint-disable-line react-hooks/exhaustive-deps
 
   const loadTrendingVenues = async () => {
     const TRENDING_TTL_MS = 60 * 60 * 1000; // 1 hour
@@ -238,7 +249,7 @@ export default function HomePage() {
     }
   };
 
-  const prefetchCombinations = (activity: string, vibe: string) => {
+  const prefetchAllCombinations = (activity: string, vibe: string) => {
     const userId = localStorage.getItem(LS_USER_ID);
     if (!userId) return;
     for (const mood of MOODS) {
@@ -291,6 +302,7 @@ export default function HomePage() {
       distance_km: pick.distance_km,
     });
     setInterventionMessage("Still deciding? We think you'll love this one");
+    setSelectionCooldown(120_000); // block all other rules immediately while this is visible
     setShowIntervention(true);
   };
 
@@ -305,7 +317,7 @@ export default function HomePage() {
   const handleVibeClick = (vibe: string) => {
     setSelectedVibe(vibe);
     setSelectedMood(null);
-    prefetchCombinations(selectedActivity!, vibe);
+    prefetchAllCombinations(selectedActivity!, vibe);
     if (trackSelectionClick("vibe", vibe)) triggerSelectionIntervention(selectedActivity, vibe);
   };
 
@@ -330,6 +342,8 @@ export default function HomePage() {
       router.push(
         `/recommendations?activity=${selectedActivity}&vibe=${selectedVibe}&mood=${selectedMood}&latitude=${location.latitude}&longitude=${location.longitude}`
       );
+      // Re-fetch this combo in background so it's fresh next time the user picks it
+      prefetchAllCombinations(selectedActivity, selectedVibe);
     } finally {
       setIsLoading(false);
     }
@@ -344,12 +358,13 @@ export default function HomePage() {
     alreadySaved ? nextIds.delete(venue.venue_id) : nextIds.add(venue.venue_id);
     setSavedVenueIds(nextIds);
 
-    const cachedVenues: Venue[] = JSON.parse(sessionStorage.getItem("cached_saved_venues") ?? "[]");
+    const savedRaw = localStorage.getItem("cached_saved_venues");
+    const cachedVenues: Venue[] = savedRaw ? (JSON.parse(savedRaw).data ?? []) : [];
     const updatedVenues = alreadySaved
       ? cachedVenues.filter(v => v.venue_id !== venue.venue_id)
       : [...cachedVenues, { ...venue, distance_km: 0, solo_score: 0, similarity_score: 0, combined_score: 0, saved_at: new Date().toISOString() }];
     sessionStorage.setItem("cached_saved_ids", JSON.stringify([...nextIds]));
-    sessionStorage.setItem("cached_saved_venues", JSON.stringify(updatedVenues));
+    localStorage.setItem("cached_saved_venues", JSON.stringify({ data: updatedVenues, savedAt: Date.now() }));
     try {
       alreadySaved
         ? await unsaveVenue(userId, venue.venue_id)
@@ -378,6 +393,7 @@ export default function HomePage() {
 
   const handleInterventionAccept = () => {
     clearSelectionClicks();
+    setSelectionCooldown(120_000);
     setShowIntervention(false);
     if (pendingNoviVenue) {
       const shown: string[] = JSON.parse(sessionStorage.getItem("cached_novi_shown") ?? "[]");
@@ -390,11 +406,14 @@ export default function HomePage() {
 
   const handleInterventionDetails = () => {
     clearSelectionClicks();
-    setShowIntervention(false);
     if (pendingNoviVenue) {
       setSelectedVenue(pendingNoviVenue);
       setPendingNoviVenue(null);
       setInterventionVenue(null);
+      // Delay closing so VenueDetailsModal slides up over the intervention
+      setTimeout(() => setShowIntervention(false), 520);
+    } else {
+      setShowIntervention(false);
     }
   };
 

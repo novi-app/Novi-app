@@ -62,6 +62,7 @@ export default function TabsLayout({ children }: { children: React.ReactNode }) 
 
     if (!pick) return;
 
+    setTabSwitchCooldown(120_000); // block all other rules immediately while this is visible
     setTimeout(() => setIntervention({
       show: true,
       message: "Still deciding? We think you'll love this one",
@@ -111,7 +112,9 @@ export default function TabsLayout({ children }: { children: React.ReactNode }) 
 
   return (
     <div className="min-h-screen bg-cream pb-16">
-      {children}
+      <div key={pathname} className="animate-tab-in">
+        {children}
+      </div>
       <BottomNav />
 
       <InterventionModal

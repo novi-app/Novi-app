@@ -84,14 +84,14 @@ Thresholds that map to these levels are configured per-rule (see below). The `Fr
 **Implemented in:** `FreezeDetector.checkScroll()`, called on every `recordScroll()`.
 
 **Condition:**
-- Total scroll distance ≥ **600 px** within the last 90 seconds (micro-adjustments < 50 px are excluded)
-- ≥ **7** upward scroll events AND ≥ **7** downward scroll events in that window
+- Total scroll distance ≥ **800 px** within the last 90 seconds (micro-adjustments < 50 px are excluded)
+- ≥ **5 direction reversals** (each switch from down→up or up→down counts as one) — equivalent to ~3 back-and-forth swipe cycles
 
 | Threshold | Level |
 |-----------|-------|
 | Pattern detected | GENTLE |
 
-**Context emitted:** `scroll_cycles` (min of up/down counts), `total_scroll_distance`
+**Context emitted:** `scroll_cycles` (reversals ÷ 2), `total_scroll_distance`
 
 **Rationale:** Back-and-forth scrolling indicates comparison paralysis—user keeps revisiting options without deciding.
 
@@ -106,8 +106,8 @@ Thresholds that map to these levels are configured per-rule (see below). The `Fr
 
 | View Count (3-min window) | Level |
 |---------------------------|-------|
-| ≥ 4 | GENTLE |
-| ≥ 7 | MODERATE |
+| ≥ 5 | GENTLE |
+| ≥ 10 | MODERATE |
 
 **Context emitted:** `venue_id`, `view_count`
 
@@ -120,15 +120,16 @@ Thresholds that map to these levels are configured per-rule (see below). The `Fr
 **Implemented in:** `trackTabSwitch()` — standalone localStorage function, called from `TabsLayout` on every pathname change.
 
 **Condition:**
-- ≥ **4** distinct tab switches within a **3-minute** (180 s) rolling window
+- ≥ **7** distinct tab switches within a **200-second** rolling window
 - Consecutive switches to the same tab are ignored
-- Not in cooldown (`novi_tab_cooldown`)
+- If the gap between two consecutive switches exceeds **60 seconds**, the counter resets (only rapid bursts count)
+- Not in cooldown (`novi_freeze_cooldown`)
 
 | Threshold | Level |
 |-----------|-------|
-| ≥ 4 switches in 3 min | GENTLE (handled by caller) |
+| ≥ 7 switches in 200 s (rapid) | GENTLE (handled by caller) |
 
-**Cooldown:** Set via `setTabSwitchCooldown()`. Default **2 minutes** after dismissal. Counter is cleared (`clearTabSwitches()`) on dismissal.
+**Cooldown:** Set via `setTabSwitchCooldown()`. Default **3 minutes** (180 s) after dismissal. Also set to **2 minutes** when the user accepts a recommendation (grace period). Counter is cleared (`clearTabSwitches()`) on dismissal or accept.
 
 **Context sent to API:** `current_tab` (which tab the user landed on when trigger fired)
 
@@ -141,14 +142,14 @@ Thresholds that map to these levels are configured per-rule (see below). The `Fr
 **Implemented in:** `trackSelectionClick()` — standalone localStorage function, called from the home page when a user taps activity/vibe/mood filters.
 
 **Condition:**
-- ≥ **4** selection clicks within a **5-minute** (300 s) rolling window
-- Not in cooldown (`novi_selection_cooldown`)
+- ≥ **6** selection clicks within a **5-minute** (300 s) rolling window
+- Not in cooldown (`novi_freeze_cooldown`)
 
 | Threshold | Level |
 |-----------|-------|
-| ≥ 4 clicks in 5 min | GENTLE (handled by caller) |
+| ≥ 6 clicks in 5 min | GENTLE (handled by caller) |
 
-**Cooldown:** Set via `setSelectionCooldown()`. Default **2 minutes** after dismissal. Counter is cleared (`clearSelectionClicks()`) on dismissal.
+**Cooldown:** Set via `setSelectionCooldown()`. Default **2 minutes** (120 s) after dismissal. Counter is cleared (`clearSelectionClicks()`) on dismissal.
 
 **Context sent to API:** `type` (activity | vibe | mood), `value` of the last selection
 
@@ -182,14 +183,14 @@ Call `resetDismissals()` to clear the escalation state (e.g. after meaningful re
 
 ### 4.3 Standalone Rule Cooldowns
 
-Tab switching and selection clicking use their own localStorage cooldown keys, set independently of the `FreezeDetector`:
+Tab switching and selection clicking share a single unified localStorage cooldown key:
 
 | Rule | localStorage key | Default cooldown |
 |------|-----------------|-----------------|
-| Tab switching | `novi_tab_cooldown` | 120 s |
-| Selection clicking | `novi_selection_cooldown` | 120 s |
+| Tab switching | `novi_freeze_cooldown` | 180 s |
+| Selection clicking | `novi_freeze_cooldown` | 120 s |
 
-These cooldowns **do** persist across page navigations within the same browser session, but are not explicitly cleared on session end (they expire naturally by timestamp).
+Because both rules share the same key, triggering either one suppresses the other for the duration of the cooldown. These cooldowns **do** persist across page navigations within the same browser session, but are not explicitly cleared on session end (they expire naturally by timestamp).
 
 ---
 
@@ -245,6 +246,7 @@ WATCHING ──[condition met]──► DETECTING ──[threshold reached]─�
 |----------|----------|
 | Two rules fire within the same cooldown window | Second rule is blocked by `canTrigger()`. Both rules have the same shared `lastTriggerTime`. |
 | Same tab navigated to consecutively | `trackTabSwitch` ignores it — consecutive duplicate tabs are not counted |
+| Tab switch after a long pause (> 60 s) | Counter resets — only rapid bursts within 60 s of each other accumulate toward the threshold |
 | Network failure on `/api/intervention` call | Caller falls back to a hardcoded message; intervention still shown |
 | Standalone cooldown expires naturally | No explicit reset needed; timestamp comparison handles expiry |
 | `FreezeDetector` destroyed mid-session | `destroy()` clears the evaluation interval; no further events fire |

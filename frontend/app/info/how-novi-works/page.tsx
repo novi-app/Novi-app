@@ -7,7 +7,7 @@ export default function HowNoviWorksPage() {
   const router = useRouter();
 
   return (
-    <div className="min-h-screen bg-cream">
+    <div className="min-h-screen bg-cream animate-page-in">
       <div
         className="bg-secondary text-white px-6 py-2 flex flex-col gap-1"
         style={{ paddingTop: "max(env(safe-area-inset-top), 1rem)", height: "140px" }}

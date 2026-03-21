@@ -11,7 +11,7 @@ import { LS_USER_ID } from "@/lib/onboarding";
 import { Venue } from "@/lib/types";
 import VenueCard from "@/components/venueCard";
 import VenueDetailsModal from "@/components/venueDetailsModal";
-import { clearSelectionClicks } from "@/lib/freezeDetection";
+import { clearSelectionClicks, setTabSwitchCooldown } from "@/lib/freezeDetection";
 import { SpinningGlobe } from "@/components/spinningGlobe";
 
 const ACTIVITY_LABELS: Record<string, string> = {
@@ -76,6 +76,7 @@ function Page () {
         triggerRule: event.rule,
       });
       setInterventionStartTime(Date.now());
+      setTabSwitchCooldown(120_000); // block other pages from firing while this is visible
       setShowIntervention(true);
 
       trackInterventionShown(
@@ -184,11 +185,12 @@ function Page () {
       newSaved.add(venue.venue_id);
     }
     setSavedVenueIds(newSaved);
-    const cachedVenues: Venue[] = JSON.parse(sessionStorage.getItem("cached_saved_venues") ?? "[]");
+    const savedRaw = localStorage.getItem("cached_saved_venues");
+    const cachedVenues: Venue[] = savedRaw ? (JSON.parse(savedRaw).data ?? []) : [];
     const updatedCache = isSaved
       ? cachedVenues.filter(v => v.venue_id !== venue.venue_id)
       : [...cachedVenues, { ...venue, saved_at: new Date().toISOString() }];
-    sessionStorage.setItem("cached_saved_venues", JSON.stringify(updatedCache));
+    localStorage.setItem("cached_saved_venues", JSON.stringify({ data: updatedCache, savedAt: Date.now() }));
 
     try {
       if (isSaved) {
@@ -243,6 +245,7 @@ function Page () {
       dismissalCount
     );
 
+    setTabSwitchCooldown(120_000); // grace period after accept
     const venue = venues.find(v => v.venue_id === interventionData.venue.id);
     if (venue) {
       const url = `https://www.google.com/maps/dir/?api=1&destination=${venue.location.latitude},${venue.location.longitude}`;
@@ -263,6 +266,7 @@ function Page () {
     );
 
     freezeDetection.dismissIntervention();
+    setTabSwitchCooldown(180_000); // mirror in-memory cooldown to localStorage so home/saved don't fire
     setDismissalCount((count) => count + 1);
     setShowIntervention(false);
   };
@@ -270,8 +274,13 @@ function Page () {
   const handleInterventionDetails = () => {
     if (!interventionData?.venue) return;
     const venue = venues.find(v => v.venue_id === interventionData.venue.id);
-    setShowIntervention(false);
-    if (venue) setSelectedVenue(venue);
+    if (venue) {
+      setSelectedVenue(venue);
+      // Delay closing so VenueDetailsModal slides up over the intervention
+      setTimeout(() => setShowIntervention(false), 520);
+    } else {
+      setShowIntervention(false);
+    }
   };
 
   const topVenue = venues[0];
@@ -304,7 +313,7 @@ function Page () {
         <div className="max-w-md mx-auto w-full">
           <div className="flex items-center justify-between mb-4">
             <button
-              onClick={() => router.back()}
+              onClick={() => router.push("/tabs/home")}
               className="w-7 h-7 flex items-center justify-center text-black rounded-full bg-white bg-opacity-20"
             >
               <svg className="w-4 h-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">

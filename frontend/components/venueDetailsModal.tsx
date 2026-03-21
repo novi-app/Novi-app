@@ -55,7 +55,7 @@ export default function VenueDetailsModal({ venue, onClose, onDirections }: Venu
 
   return (
     <div
-      className={`fixed inset-0 z-50 flex flex-col justify-end transition-opacity duration-500 ${visible ? "opacity-100 bg-black/90" : "opacity-0 bg-black/0"}`}
+      className={`fixed inset-0 z-[60] flex flex-col justify-end transition-opacity duration-500 ${visible ? "opacity-100 bg-black/90" : "opacity-0 bg-black/0"}`}
       onClick={handleClose}
     >
       <div

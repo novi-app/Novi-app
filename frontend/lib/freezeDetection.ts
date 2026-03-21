@@ -130,12 +130,19 @@ export class FreezeDetector {
     if (this.totalScrollDistance < 800) return;
 
     const directions = this.scrollEvents.map(e => e.direction);
-    const ups = directions.filter(d => d === "up").length;
-    const downs = directions.filter(d => d === "down").length;
 
-    if (ups >= 6 && downs >= 6) {
+    // Count direction reversals — each switch from up→down or down→up is one reversal.
+    // This is more meaningful than counting individual events, since a single mobile
+    // swipe can generate many events in the same direction.
+    let reversals = 0;
+    for (let i = 1; i < directions.length; i++) {
+      if (directions[i] !== directions[i - 1]) reversals++;
+    }
+
+    // 5 reversals ≈ 3 back-and-forth swipe cycles
+    if (reversals >= 5) {
       this.trigger("scroll_indecision", "GENTLE", {
-        scroll_cycles: Math.min(ups, downs),
+        scroll_cycles: Math.floor(reversals / 2),
         total_scroll_distance: this.totalScrollDistance,
       });
     }

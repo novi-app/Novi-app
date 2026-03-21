@@ -102,12 +102,18 @@ export default function SavedPage() {
       return;
     }
 
-    const cached = sessionStorage.getItem("cached_saved_venues");
-    if (cached) {
-      setVenues(JSON.parse(cached));
-      setLoadedAt(Date.now());
-      setIsLoading(false);
-      return;
+    const SAVED_TTL_MS = 60 * 60 * 1000; // 1 hour
+    const raw = localStorage.getItem("cached_saved_venues");
+    if (raw) {
+      try {
+        const { data, savedAt } = JSON.parse(raw);
+        if (Date.now() - savedAt < SAVED_TTL_MS) {
+          setVenues(data);
+          setLoadedAt(Date.now());
+          setIsLoading(false);
+          return;
+        }
+      } catch {}
     }
 
     setIsLoading(true);
@@ -115,7 +121,7 @@ export default function SavedPage() {
       const result = await getSavedVenues(userId);
       setVenues(result.venues);
       setLoadedAt(Date.now());
-      sessionStorage.setItem("cached_saved_venues", JSON.stringify(result.venues));
+      localStorage.setItem("cached_saved_venues", JSON.stringify({ data: result.venues, savedAt: Date.now() }));
     } catch (err) {
       console.error("Failed to load saved venues:", err);
     } finally {
@@ -129,7 +135,7 @@ export default function SavedPage() {
 
     setVenues((prev) => {
       const updated = prev.filter((v) => v.venue_id !== venueId);
-      sessionStorage.setItem("cached_saved_venues", JSON.stringify(updated));
+      localStorage.setItem("cached_saved_venues", JSON.stringify({ data: updated, savedAt: Date.now() }));
       sessionStorage.setItem("cached_saved_ids", JSON.stringify(updated.map((v) => v.venue_id)));
       return updated;
     });
@@ -161,7 +167,7 @@ export default function SavedPage() {
       <div className="min-h-screen bg-cream flex items-center justify-center">
         <div className="text-center">
           <SpinningGlobe className="mx-auto mb-1" />
-          <p className="text-gray-600 font-medium">Loading saved places...</p>
+          <p className="text-gray-600 font-medium">Loading your saved places...</p>
         </div>
       </div>
     );
@@ -247,14 +253,23 @@ export default function SavedPage() {
           setNudgePendingVenue(null);
         }}
         onAccept={() => {
-          if (nudgePendingVenue) setSelectedVenue(nudgePendingVenue);
-          setNudgeVenue(null);
-          setNudgePendingVenue(null);
+          localStorage.setItem(FREEZE_COOLDOWN_KEY, String(Date.now() + 120_000));
+          if (nudgePendingVenue) {
+            setSelectedVenue(nudgePendingVenue);
+            setTimeout(() => { setNudgeVenue(null); setNudgePendingVenue(null); }, 520);
+          } else {
+            setNudgeVenue(null);
+            setNudgePendingVenue(null);
+          }
         }}
         onDetails={() => {
-          if (nudgePendingVenue) setSelectedVenue(nudgePendingVenue);
-          setNudgeVenue(null);
-          setNudgePendingVenue(null);
+          if (nudgePendingVenue) {
+            setSelectedVenue(nudgePendingVenue);
+            setTimeout(() => { setNudgeVenue(null); setNudgePendingVenue(null); }, 520);
+          } else {
+            setNudgeVenue(null);
+            setNudgePendingVenue(null);
+          }
         }}
         level="GENTLE"
         message="Still deciding? We think you'll love this one!"

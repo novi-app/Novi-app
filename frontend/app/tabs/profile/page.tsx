@@ -48,13 +48,18 @@ export default function ProfilePage() {
       return;
     }
 
-    const cached = sessionStorage.getItem("cached_profile");
-    if (cached) {
-      const data: UserProfile = JSON.parse(cached);
-      setProfile(data);
-      seedLocalState(data);
-      setIsLoading(false);
-      return;
+    const PROFILE_TTL_MS = 24 * 60 * 60 * 1000; // 24 hours
+    const raw = localStorage.getItem("cached_profile");
+    if (raw) {
+      try {
+        const { data, savedAt } = JSON.parse(raw);
+        if (Date.now() - savedAt < PROFILE_TTL_MS) {
+          setProfile(data);
+          seedLocalState(data);
+          setIsLoading(false);
+          return;
+        }
+      } catch {}
     }
 
     setIsLoading(true);
@@ -62,7 +67,7 @@ export default function ProfilePage() {
       const data = await getUserProfile(userId);
       setProfile(data);
       seedLocalState(data);
-      sessionStorage.setItem("cached_profile", JSON.stringify(data));
+      localStorage.setItem("cached_profile", JSON.stringify({ data, savedAt: Date.now() }));
     } catch (err) {
       console.error("Failed to load profile:", err);
     } finally {
@@ -109,7 +114,7 @@ export default function ProfilePage() {
       });
       const updatedProfile = { ...profile, preferences: result.preferences };
       setProfile(updatedProfile);
-      sessionStorage.setItem("cached_profile", JSON.stringify(updatedProfile));
+      localStorage.setItem("cached_profile", JSON.stringify({ data: updatedProfile, savedAt: Date.now() }));
     } catch (err) {
       console.error("Failed to update preferences:", err);
       alert("Failed to update preferences. Please try again.");
@@ -120,10 +125,10 @@ export default function ProfilePage() {
 
   const handleLogout = () => {
     if (!confirm("Are you sure you want to log out?")) return;
-    sessionStorage.removeItem("cached_profile");
-    sessionStorage.removeItem("cached_trending_venues");
+    localStorage.removeItem("cached_profile");
+    localStorage.removeItem("cached_trending_venues");
+    localStorage.removeItem("cached_saved_venues");
     sessionStorage.removeItem("cached_saved_ids");
-    sessionStorage.removeItem("cached_saved_venues");
     sessionStorage.removeItem("cached_novi_pool");
     sessionStorage.removeItem("cached_novi_shown");
     localStorage.removeItem(LS_USER_ID);
