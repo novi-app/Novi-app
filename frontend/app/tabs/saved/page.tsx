@@ -1,17 +1,17 @@
 "use client";
 
-import { useState, useEffect } from "react";
+import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { getSavedVenues, unsaveVenue } from "@/lib/api";
 import { trackDirectionsClicked } from "@/lib/analytics";
 import { LS_USER_ID } from "@/lib/onboarding";
 import VenueDetailsModal from "@/components/venueDetailsModal";
+import { InterventionModal, type InterventionVenue } from "@/components/interventionModal";
 import type { Venue } from "@/lib/types";
 import { SpinningGlobe } from "@/components/spinningGlobe";
 
 const USER_LOCATION = { latitude: 35.6595, longitude: 139.7004 };
-const NOW = Date.now();
 
 function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): number {
   const R = 6371;
@@ -29,10 +29,70 @@ export default function SavedPage() {
   const [venues, setVenues] = useState<Venue[]>([]);
   const [selectedVenue, setSelectedVenue] = useState<Venue | null>(null);
   const [isLoading, setIsLoading] = useState(true);
+  const [loadedAt, setLoadedAt] = useState(0);
+  const [nudgeVenue, setNudgeVenue] = useState<InterventionVenue | null>(null);
+  const [nudgePendingVenue, setNudgePendingVenue] = useState<Venue | null>(null);
+  const venueTappedRef = useRef(false);
+  const venuesRef = useRef<Venue[]>([]);
+  venuesRef.current = venues;
 
   useEffect(() => {
     loadSavedVenues();
   }, []);
+
+  // Idle nudge: fires once on mount after 30s if user hasn't tapped anything.
+  // Reads venues via ref so unsaves don't cancel/restart the timer.
+  useEffect(() => {
+    const timer = setTimeout(() => {
+      if (venueTappedRef.current) return;
+      const cooldownUntil = parseInt(localStorage.getItem("novi_tab_cooldown") || "0");
+      if (Date.now() < cooldownUntil) return;
+
+      // Set cooldown immediately so navigating away without interacting doesn't re-trigger
+      localStorage.setItem("novi_tab_cooldown", String(Date.now() + 120_000));
+
+      const current = venuesRef.current;
+
+      if (current.length > 0) {
+        // Pick from their saved list
+        const pick = current[Math.floor(Math.random() * Math.min(current.length, 3))];
+        setNudgePendingVenue(pick);
+        setNudgeVenue({
+          id: pick.venue_id,
+          name: pick.name,
+          photo: pick.photo,
+          category: pick.category,
+          rating: pick.rating,
+          reviews_count: pick.reviews_count,
+          price_level: pick.price_level,
+          tags: pick.tags,
+          solo_reason: pick.solo_reason,
+          distance_km: pick.distance_km,
+        });
+      } else {
+        // No saved venues — fall back to pool
+        const pool: import("@/lib/types").Venue[] = JSON.parse(sessionStorage.getItem("cached_novi_pool") ?? "[]");
+        const shown: string[] = JSON.parse(sessionStorage.getItem("cached_novi_shown") ?? "[]");
+        const pick = pool.filter(v => !shown.includes(v.venue_id))[0] ?? null;
+        if (!pick) return;
+        setNudgePendingVenue(pick);
+        setNudgeVenue({
+          id: pick.venue_id,
+          name: pick.name,
+          photo: pick.photo,
+          category: pick.category,
+          rating: pick.rating,
+          reviews_count: pick.reviews_count,
+          price_level: pick.price_level,
+          tags: pick.tags,
+          solo_reason: pick.solo_reason,
+          distance_km: pick.distance_km,
+        });
+      }
+    }, 30_000);
+
+    return () => clearTimeout(timer);
+  }, []); // mount-only — venuesRef keeps current value without re-triggering
 
   const loadSavedVenues = async () => {
     const userId = localStorage.getItem(LS_USER_ID);
@@ -44,6 +104,7 @@ export default function SavedPage() {
     const cached = sessionStorage.getItem("cached_saved_venues");
     if (cached) {
       setVenues(JSON.parse(cached));
+      setLoadedAt(Date.now());
       setIsLoading(false);
       return;
     }
@@ -52,6 +113,7 @@ export default function SavedPage() {
     try {
       const result = await getSavedVenues(userId);
       setVenues(result.venues);
+      setLoadedAt(Date.now());
       sessionStorage.setItem("cached_saved_venues", JSON.stringify(result.venues));
     } catch (err) {
       console.error("Failed to load saved venues:", err);
@@ -67,8 +129,7 @@ export default function SavedPage() {
     setVenues((prev) => {
       const updated = prev.filter((v) => v.venue_id !== venueId);
       sessionStorage.setItem("cached_saved_venues", JSON.stringify(updated));
-      const updatedIds = updated.map((v) => v.venue_id);
-      sessionStorage.setItem("cached_saved_ids", JSON.stringify(updatedIds));
+      sessionStorage.setItem("cached_saved_ids", JSON.stringify(updated.map((v) => v.venue_id)));
       return updated;
     });
 
@@ -83,8 +144,7 @@ export default function SavedPage() {
 
   const handleDirections = (venue: Venue) => {
     trackDirectionsClicked(venue.venue_id, venue.name, venue.category, venue.distance_km);
-    const url = `https://www.google.com/maps/dir/?api=1&destination=${venue.location.latitude},${venue.location.longitude}`;
-    window.open(url, "_blank");
+    window.open(`https://www.google.com/maps/dir/?api=1&destination=${venue.location.latitude},${venue.location.longitude}`, "_blank");
   };
 
   const groupedVenues = {
@@ -93,15 +153,11 @@ export default function SavedPage() {
     explore: venues.filter((v) => v.activity === "explore"),
   };
 
-  const activityLabels = {
-    food: "Places to eat",
-    social: "Places to socialize",
-    explore: "Places to explore",
-  };
+  const activityLabels = { food: "Places to eat", social: "Places to socialize", explore: "Places to explore" };
 
   if (isLoading) {
     return (
-      <div className="min-h-screen bg-cream flex items-center justify-center font-[Sora]">
+      <div className="min-h-screen bg-cream flex items-center justify-center">
         <div className="text-center">
           <SpinningGlobe className="mx-auto mb-1" />
           <p className="text-gray-600 font-medium">Loading saved places...</p>
@@ -112,30 +168,25 @@ export default function SavedPage() {
 
   if (venues.length === 0) {
     return (
-      <div className="min-h-screen bg-cream font-Sora">
+      <div className="min-h-screen bg-cream">
         <div
-          className="bg-secondary text-white px-6 flex items-center"
-          style={{ paddingTop: "max(env(safe-area-inset-top), 2rem)",
-            height:"140px"
-           }}
+          className="bg-secondary px-6 text-white flex items-center"
+          style={{ paddingTop: "max(env(safe-area-inset-top), 2rem)", height: "120px" }}
         >
-
           <div className="max-w-md mx-auto w-full flex items-end pb-4">
-            <h1 className="text-2xl leading-none font-semibold">Saved places</h1>
+            <h1 className="text-2xl font-semibold">Saved places</h1>
           </div>
         </div>
-
         <div className="px-6 max-w-md mx-auto mt-12 text-center">
-          <svg className="w-20 h-20 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+          <svg className="w-16 h-16 mx-auto mb-4 text-gray-300" fill="none" stroke="currentColor" viewBox="0 0 24 24">
             <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
           </svg>
           <h2 className="text-xl font-bold text-gray-900 mb-2">No saved places yet</h2>
-          <p className="text-gray-600 mb-6">
-            Start saving venues you want to visit later
-          </p>
+          <p className="text-gray-600 mb-6">Start saving venues you want to visit later</p>
           <button
-            onClick={() => router.push("/home")}
-            className="px-6 py-3 bg-orange-500 text-white font-semibold rounded-xl"
+            onClick={() => router.push("/tabs/home")}
+            className="px-6 py-3 text-white font-semibold rounded-xl"
+            style={{ background: "#E8700A" }}
           >
             Explore venues
           </button>
@@ -145,33 +196,31 @@ export default function SavedPage() {
   }
 
   return (
-    <div className="min-h-screen bg-cream pb-6 font-[Sora]">
+    <div className="min-h-screen bg-cream pb-6">
       <div
         className="bg-secondary px-6 text-white flex items-center"
-        style={{ paddingTop: "max(env(safe-area-inset-top), 2rem)" , height: "140px",}}
+        style={{ paddingTop: "max(env(safe-area-inset-top), 2rem)", height: "140px" }}
       >
         <div className="max-w-md mx-auto w-full flex items-end pb-4">
-          <h1 className="text-2xl leading-none font-semibold">Saved places</h1>
+          <h1 className="text-2xl font-semibold">Saved places</h1>
         </div>
       </div>
 
-      <div className="px-6 max-w-md mx-auto space-y-9 mt-6">
+      <div className="px-6 max-w-md mx-auto space-y-6 mt-6">
         {Object.entries(groupedVenues).map(([activity, activityVenues]) => {
           if (activityVenues.length === 0) return null;
-
           return (
             <div key={activity}>
               <h2 className="text-lg font-bold text-gray-900 mb-3">
                 {activityLabels[activity as keyof typeof activityLabels]}
               </h2>
-
               <div className="space-y-3">
                 {activityVenues.map((venue) => (
                   <SavedVenueCard
                     key={venue.venue_id}
                     venue={venue}
-                    onDetails={() => setSelectedVenue(venue)}
-                    onDirections={() => handleDirections(venue)}
+                    loadedAt={loadedAt}
+                    onDetails={() => { venueTappedRef.current = true; setSelectedVenue(venue); }}
                     onUnsave={() => handleUnsave(venue.venue_id)}
                   />
                 ))}
@@ -188,44 +237,67 @@ export default function SavedPage() {
           onDirections={() => handleDirections(selectedVenue)}
         />
       )}
+
+      <InterventionModal
+        isOpen={nudgeVenue !== null}
+        onDismiss={() => {
+          localStorage.setItem("novi_tab_cooldown", String(Date.now() + 120_000));
+          setNudgeVenue(null);
+          setNudgePendingVenue(null);
+        }}
+        onAccept={() => {
+          if (nudgePendingVenue) setSelectedVenue(nudgePendingVenue);
+          setNudgeVenue(null);
+          setNudgePendingVenue(null);
+        }}
+        onDetails={() => {
+          if (nudgePendingVenue) setSelectedVenue(nudgePendingVenue);
+          setNudgeVenue(null);
+          setNudgePendingVenue(null);
+        }}
+        level="GENTLE"
+        message="Still deciding? We think you'll love this one!"
+        suggestedAction="Let's check it out"
+        venue={nudgeVenue}
+      />
     </div>
   );
 }
 
 function SavedVenueCard({
   venue,
-  // onDetails,
-  // onDirections,
+  loadedAt,
+  onDetails,
   onUnsave,
 }: {
   venue: Venue;
+  loadedAt: number;
   onDetails: () => void;
-  onDirections: () => void;
   onUnsave: () => void;
 }) {
   const priceSymbol = venue.price_level > 0 ? "¥".repeat(venue.price_level) : "FREE";
   const walkMins = Math.max(1, Math.round(
     (venue.distance_km || haversineKm(USER_LOCATION.latitude, USER_LOCATION.longitude, venue.location.latitude, venue.location.longitude)) / 5 * 60
   ));
+  const tag = venue.tags?.find((t) => t !== "Solo Friendly") ?? venue.tags?.[0];
   const savedLabel = (() => {
-    if (!venue.saved_at) return null;
-    const days = Math.floor((NOW - new Date(venue.saved_at).getTime()) / 86400000);
+    if (!venue.saved_at || !loadedAt) return null;
+    const days = Math.floor((loadedAt - new Date(venue.saved_at).getTime()) / 86400000);
     if (days === 0) return "Saved today";
     if (days === 1) return "Saved yesterday";
-    return `Saved ${days} days ago`;
+    if (days > 1) return `Saved ${days} days ago`;
+    return null;
   })();
 
   return (
-    <div className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100">
+    <div
+      className="bg-white rounded-2xl p-4 shadow-sm border border-gray-100 active:scale-[0.99] transition-transform cursor-pointer"
+      onClick={onDetails}
+    >
       <div className="flex gap-4">
         <div className="relative w-24 h-24 flex-shrink-0 rounded-xl overflow-hidden bg-gray-100">
           {venue.photo ? (
-            <Image
-              src={venue.photo}
-              alt={venue.name}
-              fill
-              className="object-cover"
-            />
+            <Image src={venue.photo} alt={venue.name} fill className="object-cover" />
           ) : (
             <div className="w-full h-full bg-gradient-to-br from-gray-200 to-gray-300" />
           )}
@@ -234,106 +306,47 @@ function SavedVenueCard({
         <div className="flex-1 min-w-0">
           <div className="flex items-start justify-between gap-2 mb-1">
             <div className="flex-1 min-w-0">
-              <h3 className="font-bold text-gray-900 text-base leading-tight truncate">
-                {venue.name}
-              </h3>
-              <p className="text-sm text-gray-500 leading-tight -mt-[1px] truncate font-medium">
-                {venue.category.charAt(0).toUpperCase() +
-                  venue.category.slice(1)}{" "}
-                · {priceSymbol}
+              <h3 className="font-bold text-gray-900 text-base leading-tight truncate">{venue.name}</h3>
+              <p className="text-sm text-gray-500 leading-tight mt-1 truncate">
+                {venue.category.charAt(0).toUpperCase() + venue.category.slice(1)} · {priceSymbol}
               </p>
             </div>
-
             <button
-              onClick={onUnsave}
+              onClick={(e) => { e.stopPropagation(); onUnsave(); }}
               className="flex-shrink-0 w-8 h-8 flex items-center justify-center rounded-full hover:bg-gray-100 transition-colors"
               aria-label="Unsave"
             >
-              <svg
-                className="w-5 h-5"
-                fill="#E8700A"
-                stroke="#E8700A"
-                viewBox="0 0 24 24"
-              >
-                <path
-                  strokeLinecap="round"
-                  strokeLinejoin="round"
-                  strokeWidth={2}
-                  d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z"
-                />
+              <svg className="w-5 h-5" fill="#E8700A" stroke="#E8700A" viewBox="0 0 24 24">
+                <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M5 5a2 2 0 012-2h10a2 2 0 012 2v16l-7-3.5L5 21V5z" />
               </svg>
             </button>
           </div>
 
-          <div className="flex items-center gap-2 mb-2">
-            <div className="flex items-center gap-[2px]">
-              {[...Array(5)].map((_, i) => {
-                const filled = i < Math.floor(venue.rating);
-
-                return (
-                  <svg
-                    key={i}
-                    className="w-3.5 h-3.5"
-                    viewBox="0 0 24 24"
-                    fill={filled ? "#E8700A" : "none"}
-                    stroke={filled ? "#E8700A" : "#E8700A"}
-                    strokeWidth={1.6}
-                  >
-                    <path d="M12 2.5L14.9 8.63L21.5 9.39L16.75 13.84L18 20.3L12 17L6 20.3L7.25 13.84L2.5 9.39L9.1 8.63L12 2.5Z" />
-                  </svg>
-                );
-              })}
-            </div>
-
-            <span className="text-xs text-black">
-              {venue.rating.toFixed(1)}
-            </span>
+          <div className="flex items-center gap-1.5 mb-2">
+            <span className="text-sm">⭐️</span>
+            <span className="text-sm font-bold text-gray-700">{venue.rating.toFixed(1)}</span>
           </div>
 
-          {venue.tags && venue.tags.length > 0 && (
-            <div className="flex gap-1 mb-2">
-              {venue.tags.slice(0, 2).map((tag, index) => (
-                <span
-                  key={index}
-                  className="px-3 py-1 rounded-full text-xs font-medium"
-                  style={{
-                    backgroundColor: "#F5F1E8",
-                    color: "#0D4A4A",
-                  }}
-                >
-                  {tag}
-                </span>
-              ))}
+          {tag && (
+            <div className="mb-2">
+              <span
+                className="px-2.5 py-0.5 rounded-full text-xs font-medium"
+                style={{ backgroundColor: "#F5F1E8", color: "#0D4A4A" }}
+              >
+                {tag}
+              </span>
             </div>
           )}
 
-          <div className="flex items-center gap-2 text-xs text-gray-500 mb-3">
-            <svg
-              className="w-3.5 h-3.5 flex-shrink-0 opacity-60"
-              viewBox="0 0 13 14"
-              xmlns="http://www.w3.org/2000/svg"
-            >
-              <path
-                d="M8.19723 2.09848C7.93864 2.09848 7.69065 2.20911 7.5078 2.40602C7.32496 2.60294 7.22223 2.87 7.22223 3.14848C7.22223 3.42696 7.32496 3.69403 7.5078 3.89094C7.69065 4.08785 7.93864 4.19848 8.19723 4.19848C8.45585 4.19848 8.70383 4.08785 8.88664 3.89094C9.06953 3.69403 9.17223 3.42696 9.17223 3.14848C9.17223 2.87 9.06953 2.60294 8.88664 2.40602C8.70383 2.20911 8.45585 2.09848 8.19723 2.09848ZM6.57223 3.14848C6.5723 2.8517 6.64246 2.55981 6.77611 2.30026C6.90976 2.0407 7.1025 1.82202 7.33623 1.66476C7.56995 1.50751 7.83698 1.41686 8.11219 1.40132C8.38736 1.38579 8.66174 1.44589 8.90947 1.57597C9.1572 1.70605 9.37008 1.90183 9.52819 2.14492C9.6863 2.388 9.78437 2.6704 9.81329 2.96555C9.84214 3.2607 9.80086 3.55892 9.69329 3.83215C9.58571 4.10538 9.41533 4.34466 9.19823 4.52748C9.51958 4.67443 9.79388 4.91948 9.98733 5.23238L10.3286 5.78398L11.2964 6.52808C11.4199 6.62071 11.5252 6.73882 11.606 6.87557C11.6868 7.01231 11.7417 7.16498 11.7673 7.3247C11.793 7.48443 11.7889 7.64805 11.7553 7.80608C11.7219 7.96411 11.6595 8.11341 11.5721 8.24532C11.4846 8.37723 11.3737 8.48913 11.2457 8.57454C11.1178 8.65995 10.9754 8.71716 10.8268 8.74286C10.6782 8.76856 10.5263 8.76226 10.38 8.72429C10.2337 8.68632 10.0958 8.61746 9.97433 8.52168L8.83683 7.64668L8.77833 7.59838L8.76858 7.62918L9.38153 8.62738C9.54403 8.89342 9.64348 9.19792 9.67013 9.51432L9.81768 11.2643C9.83913 11.5844 9.74309 11.9007 9.55021 12.1454C9.35724 12.39 9.08294 12.5433 8.78621 12.5724C8.48941 12.6014 8.1939 12.5039 7.96317 12.3008C7.73246 12.0977 7.58497 11.8052 7.55243 11.4862L7.41593 9.86782L7.09483 9.34492L6.16533 11.832C6.05061 12.13 5.83132 12.3673 5.5551 12.4923C5.27888 12.6172 4.96802 12.6199 4.69005 12.4995C4.41208 12.3791 4.18945 12.1454 4.0705 11.8493C3.95155 11.5531 3.94591 11.2184 4.05478 10.9178L4.93033 8.57418C4.74054 8.58276 4.55176 8.54002 4.38125 8.44985C4.21073 8.35967 4.0639 8.22495 3.95415 8.05797C3.84441 7.89099 3.77524 7.69707 3.75296 7.49391C3.73069 7.29074 3.75602 7.0848 3.82663 6.89488L4.54163 4.96988C4.60855 4.78998 4.71414 4.62975 4.84973 4.50234C4.98533 4.37493 5.14706 4.28399 5.32163 4.23698L6.32263 3.96748C6.45913 3.93014 6.59607 3.91102 6.73343 3.91008C6.6271 3.67254 6.572 3.41219 6.57223 3.14848ZM6.77893 4.56598L5.47893 4.91598C5.40401 4.93608 5.33459 4.97505 5.27639 5.0297C5.21819 5.08434 5.17288 5.15309 5.14418 5.23028L4.42918 7.15528C4.4031 7.21972 4.3893 7.28913 4.3886 7.35942C4.38789 7.42971 4.40031 7.49943 4.42509 7.56445C4.44988 7.62948 4.48654 7.68848 4.53289 7.73796C4.57925 7.78744 4.63436 7.82639 4.69496 7.8525C4.75555 7.87862 4.82041 7.89136 4.88566 7.88997C4.95092 7.88859 5.01525 7.87311 5.07485 7.84445C5.13445 7.81578 5.18809 7.77453 5.23261 7.72312C5.27712 7.67171 5.31159 7.61121 5.33398 7.54518L5.89688 6.03108C5.91143 5.98803 5.93388 5.94857 5.96289 5.91505C5.99189 5.88153 6.02686 5.85464 6.06571 5.83597C6.10456 5.8173 6.14651 5.80725 6.18905 5.80639C6.23158 5.80554 6.27384 5.81391 6.31331 5.83101C6.35278 5.84811 6.38866 5.87358 6.4188 5.90591C6.44894 5.93824 6.47273 5.97678 6.48876 6.01922C6.5048 6.06165 6.51274 6.10714 6.51211 6.15295C6.51149 6.19876 6.50232 6.24397 6.48513 6.28588L4.65733 11.1789C4.63147 11.2432 4.61782 11.3124 4.6172 11.3825C4.61658 11.4526 4.629 11.5221 4.65372 11.5869C4.67845 11.6518 4.71498 11.7107 4.76116 11.76C4.80734 11.8094 4.86224 11.8484 4.92261 11.8745C4.98299 11.9007 5.04762 11.9136 5.11271 11.9124C5.17778 11.9113 5.24198 11.8962 5.30152 11.8678C5.36107 11.8395 5.41474 11.7987 5.45939 11.7477C5.50404 11.6967 5.53876 11.6365 5.56148 11.5709L6.49098 9.08382C6.53524 8.96535 6.60873 8.86219 6.7035 8.78554C6.79827 8.70881 6.91071 8.66148 7.02866 8.64865C7.1466 8.63582 7.26557 8.65796 7.37267 8.7127C7.47977 8.76742 7.57092 8.85265 7.63628 8.95922L8.02498 9.59272C8.03968 9.61679 8.04861 9.64444 8.05098 9.67322L8.19853 11.4232C8.21031 11.5618 8.27279 11.6898 8.37224 11.7789C8.47161 11.868 8.59983 11.9109 8.72861 11.8982C8.85739 11.8854 8.97618 11.8181 9.05889 11.7111C9.1416 11.604 9.18141 11.4659 9.16963 11.3273L9.02208 9.57802C9.00502 9.37642 8.94181 9.18261 8.83813 9.01382L8.23753 8.03378C8.18098 7.94163 8.14556 7.83639 8.13402 7.72665C8.1225 7.61691 8.13524 7.5058 8.17123 7.40238L8.41693 6.69538C8.43473 6.64455 8.46519 6.60001 8.50501 6.56662C8.54482 6.53324 8.59243 6.51233 8.64248 6.50618C8.69261 6.50003 8.74339 6.50888 8.78914 6.53176C8.83488 6.55465 8.87388 6.59068 8.90183 6.63588L9.09098 6.94108C9.12389 6.99474 9.16468 7.04002 9.21318 7.07688L10.3507 7.95188C10.4027 7.99388 10.4619 8.02427 10.5249 8.04126C10.5879 8.05825 10.6535 8.06151 10.7177 8.05083C10.7819 8.04015 10.8435 8.01576 10.8988 7.97908C10.9541 7.9424 11.0021 7.89418 11.0399 7.83726C11.0777 7.78034 11.1045 7.71585 11.1188 7.6476C11.1331 7.57934 11.1347 7.5087 11.1232 7.43981C11.1118 7.37093 11.0878 7.30519 11.0524 7.24647C11.0171 7.18776 10.9712 7.13724 10.9175 7.09788L9.94963 6.35308C9.88577 6.30373 9.83068 6.24231 9.78713 6.17178L9.25218 5.30868C9.18491 5.20019 9.08245 5.12258 8.96488 5.09098L7.01488 4.56598C6.93742 4.54517 6.8564 4.54517 6.77893 4.56598Z"
-                fill="currentColor"
-              />
-            </svg>
-            {venue.distance_km} min walk
+          <div className="flex items-center justify-between text-xs text-gray-500">
+            <div className="flex items-center gap-1">
+              <svg width="10" height="13" viewBox="0 0 10 13" fill="none" xmlns="http://www.w3.org/2000/svg">
+                <path d="M5.47953 0.799491C5.16126 0.799491 4.85605 0.925921 4.631 1.15096C4.40596 1.37601 4.27953 1.68123 4.27953 1.99949C4.27953 2.31775 4.40596 2.62298 4.631 2.84802C4.85605 3.07306 5.16126 3.19949 5.47953 3.19949C5.79782 3.19949 6.10303 3.07306 6.32803 2.84802C6.55313 2.62298 6.67953 2.31775 6.67953 1.99949C6.67953 1.68123 6.55313 1.37601 6.32803 1.15096C6.10303 0.925921 5.79782 0.799491 5.47953 0.799491ZM3.47953 1.99949C3.47962 1.66031 3.56597 1.32672 3.73046 1.03009C3.89495 0.733451 4.13216 0.483531 4.41983 0.303811C4.70749 0.124101 5.03614 0.020491 5.37486 0.00274099C5.71353 -0.015009 6.05123 0.0536711 6.35613 0.202331C6.66103 0.351001 6.92303 0.574751 7.11763 0.852561C7.31223 1.13037 7.43293 1.45311 7.46853 1.79043C7.50403 2.12774 7.45323 2.46856 7.32083 2.78083C7.18843 3.09309 6.97873 3.36655 6.71153 3.57549C7.10703 3.74343 7.44463 4.02349 7.68273 4.38109L8.10273 5.01149L9.29393 5.86189C9.44593 5.96775 9.57543 6.10274 9.67493 6.25902C9.77443 6.4153 9.84193 6.58977 9.87343 6.77231C9.90503 6.95486 9.90003 7.14186 9.85873 7.32246C9.81753 7.50307 9.74083 7.67369 9.63323 7.82445C9.52553 7.9752 9.38903 8.10309 9.23153 8.2007C9.07413 8.29831 8.89883 8.36369 8.71593 8.39307C8.53303 8.42244 8.34613 8.41524 8.16603 8.37184C7.98593 8.32845 7.81623 8.24975 7.66673 8.14029L6.26673 7.14029L6.19473 7.08509L6.18273 7.12029L6.93713 8.26109C7.13713 8.56514 7.25953 8.91314 7.29233 9.27474L7.47393 11.2747C7.50033 11.6405 7.38213 12.002 7.14473 12.2816C6.90723 12.5612 6.56963 12.7364 6.20443 12.7696C5.83913 12.8028 5.47543 12.6914 5.19146 12.4593C4.9075 12.2271 4.72598 11.8928 4.68593 11.5283L4.51793 9.67874L4.12273 9.08114L2.97873 11.9235C2.83754 12.2641 2.56764 12.5353 2.22767 12.6781C1.88771 12.8209 1.50511 12.8239 1.163 12.6863C0.820876 12.5487 0.546866 12.2816 0.400476 11.9432C0.254076 11.6047 0.247126 11.2222 0.381126 10.8787L1.45873 8.20029C1.22514 8.2101 0.992796 8.16125 0.782936 8.0582C0.573066 7.95514 0.392346 7.80117 0.257276 7.61034C0.122206 7.4195 0.0370757 7.19788 0.00965567 6.96569C-0.0177543 6.7335 0.0134158 6.49814 0.100326 6.28109L0.980326 4.08109C1.06269 3.87549 1.19265 3.69237 1.35953 3.54676C1.52642 3.40115 1.72547 3.29722 1.94033 3.24349L3.17233 2.93549C3.34033 2.89282 3.50887 2.87096 3.67793 2.86989C3.54706 2.59841 3.47924 2.30087 3.47953 1.99949ZM3.73393 3.61949L2.13393 4.01949C2.04172 4.04246 1.95628 4.087 1.88465 4.14945C1.81302 4.2119 1.75725 4.29047 1.72193 4.37869L0.841926 6.57869C0.809826 6.65233 0.792836 6.73166 0.791976 6.81199C0.791106 6.89232 0.806386 6.972 0.836886 7.04631C0.867396 7.12063 0.912516 7.18806 0.969566 7.24461C1.02663 7.30116 1.09446 7.34567 1.16904 7.37551C1.24362 7.40536 1.32344 7.41992 1.40375 7.41834C1.48407 7.41676 1.56325 7.39907 1.6366 7.36631C1.70995 7.33355 1.77597 7.2864 1.83076 7.22765C1.88554 7.1689 1.92797 7.09975 1.95553 7.02429L2.64833 5.29389C2.66624 5.24469 2.69387 5.19959 2.72957 5.16128C2.76526 5.12298 2.8083 5.09224 2.85612 5.07091C2.90394 5.04957 2.95556 5.03808 3.00792 5.0371C3.06027 5.03613 3.11228 5.0457 3.16086 5.06524C3.20944 5.08478 3.25359 5.11389 3.29069 5.15084C3.32779 5.18779 3.35707 5.23183 3.3768 5.28033C3.39654 5.32883 3.40631 5.38081 3.40554 5.43317C3.40477 5.48552 3.39348 5.53719 3.37233 5.58509L1.12273 11.1771C1.0909 11.2506 1.0741 11.3297 1.07334 11.4098C1.07257 11.4899 1.08786 11.5693 1.11829 11.6434C1.14872 11.7175 1.19368 11.7848 1.25052 11.8412C1.30736 11.8977 1.37493 11.9422 1.44923 11.9721C1.52354 12.002 1.60309 12.0167 1.68319 12.0154C1.76328 12.0141 1.8423 11.9968 1.91558 11.9644C1.98887 11.9321 2.05493 11.8854 2.10988 11.8271C2.16483 11.7688 2.20756 11.7001 2.23553 11.6251L3.37953 8.78274C3.434 8.64734 3.52445 8.52944 3.64109 8.44184C3.75773 8.35415 3.89612 8.30006 4.04129 8.2854C4.18645 8.27073 4.33287 8.29604 4.46468 8.3586C4.5965 8.42114 4.70869 8.51854 4.78913 8.64034L5.26753 9.36434C5.28561 9.39184 5.29661 9.42344 5.29953 9.45634L5.48113 11.4563C5.49563 11.6147 5.57253 11.761 5.69493 11.8628C5.81723 11.9646 5.97503 12.0136 6.13353 11.9991C6.29203 11.9845 6.43823 11.9076 6.54003 11.7853C6.64183 11.6629 6.69083 11.5051 6.67633 11.3467L6.49473 9.34754C6.47373 9.11714 6.39593 8.89564 6.26833 8.70274L5.52913 7.58269C5.45953 7.47738 5.41593 7.3571 5.40173 7.23168C5.38755 7.10627 5.40323 6.97928 5.44753 6.86109L5.74993 6.05309C5.77183 5.995 5.80933 5.94409 5.85833 5.90594C5.90733 5.86779 5.96593 5.84389 6.02753 5.83686C6.08923 5.82983 6.15173 5.83995 6.20803 5.8661C6.26433 5.89225 6.31233 5.93343 6.34673 5.98509L6.57953 6.33389C6.62003 6.39522 6.67023 6.44696 6.72993 6.48909L8.12993 7.48909C8.19393 7.53709 8.26683 7.57182 8.34433 7.59124C8.42193 7.61066 8.50263 7.61438 8.58163 7.60217C8.66063 7.58997 8.73643 7.56209 8.80453 7.52017C8.87263 7.47826 8.93173 7.42315 8.97823 7.3581C9.02473 7.29304 9.05773 7.21934 9.07533 7.14134C9.09293 7.06333 9.09483 6.9826 9.08073 6.90387C9.06673 6.82515 9.03713 6.75002 8.99363 6.68291C8.95013 6.61581 8.89363 6.55807 8.82753 6.51309L7.63633 5.66189C7.55773 5.60549 7.48993 5.53529 7.43633 5.45469L6.77793 4.46829C6.69513 4.3443 6.56903 4.2556 6.42433 4.21949L4.02433 3.61949C3.92899 3.59571 3.82927 3.59571 3.73393 3.61949Z" fill="#4A5565" />
+              </svg>
+              <span>{walkMins} min walk</span>
+            </div>
+            {savedLabel && <span className="text-gray-500">{savedLabel}</span>}
           </div>
-          {/* <div className="flex gap-2">
-            <button
-              onClick={onDetails}
-              className="flex-1 py-2 bg-white border-2 border-orange-500 text-orange-500 rounded-lg text-sm font-semibold active:scale-95 transition-transform"
-            >
-              Details
-            </button>
-            <button
-              onClick={onDirections}
-              className="flex-1 py-2 bg-orange-500 text-white rounded-lg text-sm font-semibold active:scale-95 transition-transform"
-            >
-              Let's go
-            </button>
-          </div> */}
         </div>
       </div>
     </div>

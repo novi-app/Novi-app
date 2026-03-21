@@ -1,3 +1,4 @@
+from datetime import datetime
 from fastapi import APIRouter, HTTPException
 from pydantic import BaseModel
 from typing import List, Optional
@@ -91,7 +92,7 @@ async def update_user_preferences(user_id: str, request: UpdatePreferencesReques
         db.collection("users").document(user_id).update({
             "preferences": updated_prefs,
             "embedding": new_embedding,
-            "updated_at": firestore.SERVER_TIMESTAMP
+            "updated_at": datetime.utcnow().isoformat()
         })
         
         return {

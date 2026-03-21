@@ -78,6 +78,8 @@ export default function HomePage() {
   const [pendingNoviVenue, setPendingNoviVenue] = useState<Venue | null>(null);
   const [tod, setTod] = useState<"morning" | "afternoon" | "night">("afternoon");
   const selectionDismissCount = useRef(0);
+  const selectedActivityRef = useRef<string | null>(null);
+  const trendingClickedRef = useRef(false);
   const heroImage = getHeroImage(tod);
 
   useEffect(() => {
@@ -100,7 +102,20 @@ export default function HomePage() {
       setSelectedVenue(JSON.parse(pendingDetails));
     }
 
-    return () => clearInterval(todInterval);
+    // Idle nudge: fire if user hasn't selected activity or tapped trending after 30s
+    const idleTimer = setTimeout(() => {
+      if (selectedActivityRef.current || trendingClickedRef.current) return;
+      const cooldownUntil = parseInt(localStorage.getItem("novi_selection_cooldown") || "0");
+      if (Date.now() < cooldownUntil) return;
+      // Set cooldown immediately so navigating away without interacting doesn't re-trigger
+      setSelectionCooldown(120_000);
+      triggerSelectionIntervention(null, null);
+    }, 30_000);
+
+    return () => {
+      clearInterval(todInterval);
+      clearTimeout(idleTimer);
+    };
   }, []);
 
   const loadTrendingVenues = async () => {
@@ -264,6 +279,7 @@ export default function HomePage() {
   };
 
   const handleActivityClick = (activity: string) => {
+    selectedActivityRef.current = activity;
     setSelectedActivity(activity);
     setSelectedVibe(null);
     setSelectedMood(null);
@@ -334,6 +350,7 @@ export default function HomePage() {
   };
 
   const handleTrendingClick = (venue: TrendingVenue) => {
+    trendingClickedRef.current = true;
     setSelectedVenue(venue as any);
   };
 

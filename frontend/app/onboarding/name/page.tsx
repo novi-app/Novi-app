@@ -5,20 +5,11 @@ import { useRouter } from "next/navigation";
 import { OnboardingHeader } from "../intro/[step]/page";
 import { trackOnboardingStepCompleted } from "@/lib/analytics";
 import { LS_USER_NAME, LS_USER_ID } from "@/lib/onboarding";
-import ReactMarkdown from "react-markdown";
 
 export default function NamePage() {
   const router = useRouter();
   const [name, setName] = useState("");
-  const [showPolicy, setShowPolicy] = useState(false);
-  const [content, setContent] = useState("");
   const [startTime] = useState(Date.now());
-
-  useEffect(() => {
-    fetch("/docs/PRIVACY_POLICY.md")
-      .then((res) => res.text())
-      .then(setContent);
-  }, []);
 
   useEffect(() => {
     if (localStorage.getItem(LS_USER_ID)) {
@@ -94,7 +85,7 @@ export default function NamePage() {
           By continuing, you agree to our{" "}
           <span
             className="underline cursor-pointer"
-            onClick={() => setShowPolicy(true)}
+            onClick={() => router.push("/info/terms")}
           >
             Terms & Privacy Policy
           </span>.
@@ -116,42 +107,6 @@ export default function NamePage() {
         </button>
       </div>
 
-      {showPolicy && (
-        <div
-          className="fixed inset-0 z-50 flex flex-col justify-end"
-          style={{ background: "rgba(0,0,0,0.5)" }}
-          onClick={() => setShowPolicy(false)}
-        >
-          <div
-            className="bg-white flex flex-col"
-            style={{ height: "90dvh", borderRadius: "20px 20px 0 0" }}
-            onClick={e => e.stopPropagation()}
-          >
-            <div className="flex justify-center pt-3 pb-2 flex-shrink-0">
-              <div className="w-10 rounded-full bg-gray-300" style={{ height: "4px" }} />
-            </div>
-
-            <div className="flex px-6 pb-4 flex-shrink-0 justify-end">
-              <button
-                onClick={() => setShowPolicy(false)}
-                className="text-secondary/50 leading-none"
-                style={{ fontSize: "28px" }}
-              >
-                ×
-              </button>
-            </div>
-
-            <div
-              className="flex-1 overflow-y-auto px-6 pb-8"
-              style={{ scrollbarWidth: "none" }}
-            >
-              <div className="prose prose-sm max-w-none text-secondary">
-                <ReactMarkdown>{content}</ReactMarkdown>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
     </div>
   );
 }
