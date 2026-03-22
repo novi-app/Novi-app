@@ -13,6 +13,44 @@ _TRENDING_MEM_TTL_MINUTES = 60    # in-memory L1: avoids Firestore reads on hot 
 _TRENDING_FS_TTL_HOURS = 24       # Firestore L2: persists across restarts and instances
 _TRENDING_CACHE_DOC = ("cache", "trending")
 
+# Venue collection cache — keyed by activity so each filter bucket is cached independently.
+_venues_cache: Dict[str, Any] = {}   # { activity: {"data": [...], "fetched_at": datetime} }
+_VENUES_CACHE_TTL_MINUTES = 60 * 24
+_venues_cache_lock = threading.Lock()
+
+
+def _get_venues(activity: str) -> List[Dict[str, Any]]:
+    """Return venues for the given activity, using in-memory cache with TTL.
+
+    Fast path: read without lock (dict reads are thread-safe in CPython).
+    Slow path: acquire lock, double-check, fetch from Firestore, populate cache.
+    This prevents multiple simultaneous cold-start requests from all hitting Firestore.
+    """
+    entry = _venues_cache.get(activity)
+    if entry and datetime.utcnow() - entry["fetched_at"] < timedelta(minutes=_VENUES_CACHE_TTL_MINUTES):
+        return entry["data"]
+
+    with _venues_cache_lock:
+        # Re-check inside lock — another thread may have populated it while we waited
+        entry = _venues_cache.get(activity)
+        if entry and datetime.utcnow() - entry["fetched_at"] < timedelta(minutes=_VENUES_CACHE_TTL_MINUTES):
+            return entry["data"]
+
+        db = get_db()
+        query = db.collection("venues")
+        if activity and activity != "any":
+            query = query.where("activity", "==", activity)
+        query = query.limit(1000)
+
+        venues = []
+        for doc in query.stream():
+            d = doc.to_dict()
+            d["doc_id"] = doc.id
+            venues.append(d)
+
+        _venues_cache[activity] = {"data": venues, "fetched_at": datetime.utcnow()}
+        return venues
+
 
 def cosine_similarity(vec1: List[float], vec2: List[float]) -> float:
     dot_product = np.dot(vec1, vec2)
@@ -49,23 +87,9 @@ def get_recommendations(
     limit: int = 5
 ) -> List[Dict[str, Any]]:
     
-    db = get_db()
-
-    def fetch_venues():
-        query = db.collection("venues")
-        if activity and activity != "any":
-            query = query.where("activity", "==", activity)
-        query = query.limit(1000)
-        venues = []
-        for doc in query.stream():
-            d = doc.to_dict()
-            d["doc_id"] = doc.id
-            venues.append(d)
-        return venues
-
     with ThreadPoolExecutor(max_workers=2) as executor:
         user_future = executor.submit(get_user, user_id)
-        venues_future = executor.submit(fetch_venues)
+        venues_future = executor.submit(_get_venues, activity)
         user_data = user_future.result()
         all_venues = venues_future.result()
 
