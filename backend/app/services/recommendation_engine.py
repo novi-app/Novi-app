@@ -1,4 +1,5 @@
 import threading
+from concurrent.futures import ThreadPoolExecutor
 import numpy as np
 from typing import List, Dict, Any, Optional
 from math import radians, sin, cos, sqrt, atan2
@@ -48,26 +49,31 @@ def get_recommendations(
     limit: int = 5
 ) -> List[Dict[str, Any]]:
     
-    user_data = get_user(user_id)
+    db = get_db()
+
+    def fetch_venues():
+        query = db.collection("venues")
+        if activity and activity != "any":
+            query = query.where("activity", "==", activity)
+        query = query.limit(1000)
+        venues = []
+        for doc in query.stream():
+            d = doc.to_dict()
+            d["doc_id"] = doc.id
+            venues.append(d)
+        return venues
+
+    with ThreadPoolExecutor(max_workers=2) as executor:
+        user_future = executor.submit(get_user, user_id)
+        venues_future = executor.submit(fetch_venues)
+        user_data = user_future.result()
+        all_venues = venues_future.result()
+
     if not user_data:
         raise ValueError(f"User {user_id} not found")
-    
+
     onboarding_prefs = user_data.get("preferences", {})
     budget = onboarding_prefs.get("budget", 2)
-    
-    db = get_db()
-    query = db.collection("venues")
-    
-    if activity and activity != "any":
-        query = query.where("activity", "==", activity)
-    
-    query = query.limit(1000)
-    
-    all_venues = []
-    for doc in query.stream():
-        venue_data = doc.to_dict()
-        venue_data["doc_id"] = doc.id
-        all_venues.append(venue_data)
     
     if not all_venues:
         return []
