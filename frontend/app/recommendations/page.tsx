@@ -284,8 +284,8 @@ function Page () {
   };
 
   const topVenue = venues[0];
-  const alternatives = venues.slice(1, 3);
-  const moreOptions = venues.slice(3);
+  const alternatives = venues.slice(1, 5);
+  const moreOptions = venues.slice(5);
 
 
   if (error) {
@@ -404,7 +404,7 @@ function Page () {
             onClick={() => setShowAll(true)}
             className="w-full py-4 border-2 border-primary text-primary font-semibold rounded-full active:scale-[0.98] transition-transform flex items-center justify-center gap-2"
           >
-            Show me more options
+            Show {moreOptions.length} more options
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
@@ -414,15 +414,19 @@ function Page () {
         {!isLoading && showAll && moreOptions.length > 0 && (
           <div className="space-y-3 animate-fadeIn">
             {moreOptions.map((venue, index) => (
-              <VenueCard
+              <div
                 key={venue.venue_id}
-                venue={venue}
-                size="small"
-                saved={savedVenueIds.has(venue.venue_id)}
-                onSaveToggle={() => handleSaveToggle(venue)}
-                onDetails={() => handleDetails(venue, index + 3)}
-                onDirections={() => handleDirections(venue)}
-              />
+                style={{ animation: `fadeIn 0.3s ease-out ${index * 60}ms both` }}
+              >
+                <VenueCard
+                  venue={venue}
+                  size="small"
+                  saved={savedVenueIds.has(venue.venue_id)}
+                  onSaveToggle={() => handleSaveToggle(venue)}
+                  onDetails={() => handleDetails(venue, index + 5)}
+                  onDirections={() => handleDirections(venue)}
+                />
+              </div>
             ))}
           </div>
         )}

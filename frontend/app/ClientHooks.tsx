@@ -9,48 +9,37 @@ export default function ClientHooks() {
 
   return (
     <>
-      {/* Register Service Worker with cache-busting */}
+      {/* Register Service Worker */}
       <Script id="register-sw" strategy="afterInteractive">
         {`
           if ('serviceWorker' in navigator) {
             window.addEventListener('load', async function() {
               try {
-                // Step 1: Unregister ALL old service workers
-                const registrations = await navigator.serviceWorker.getRegistrations();
-                await Promise.all(registrations.map(reg => reg.unregister()));
-
-                // Step 2: Clear all caches
-                if ('caches' in window) {
-                  const cacheNames = await caches.keys();
-                  await Promise.all(cacheNames.map(name => caches.delete(name)));
-                }
-
-                // Step 3: Register new service worker with cache-busting timestamp
-                const timestamp = Date.now();
                 const registration = await navigator.serviceWorker.register(
-                  '/service-worker.js?v=' + timestamp,
+                  '/service-worker.js',
                   { updateViaCache: 'none' }
                 );
 
-                // Step 4: Handle updates - reload page when new worker takes control
+                // Only reload on genuine updates — not on first install.
+                // Capture whether the page was already controlled BEFORE controllerchange fires.
+                const wasControlled = !!navigator.serviceWorker.controller;
                 let refreshing = false;
                 navigator.serviceWorker.addEventListener('controllerchange', () => {
-                  if (!refreshing) {
+                  if (!refreshing && wasControlled) {
                     refreshing = true;
                     window.location.reload();
                   }
                 });
 
-                // Step 5: If there's a waiting worker, activate it immediately
+                // If a new version is already waiting, activate it immediately
                 if (registration.waiting) {
                   registration.waiting.postMessage({ type: 'SKIP_WAITING' });
                 }
 
-                // Step 6: Listen for new workers becoming available
+                // When a new version is found, activate it as soon as it installs
                 registration.addEventListener('updatefound', () => {
                   const newWorker = registration.installing;
                   if (!newWorker) return;
-
                   newWorker.addEventListener('statechange', () => {
                     if (newWorker.state === 'installed' && navigator.serviceWorker.controller) {
                       newWorker.postMessage({ type: 'SKIP_WAITING' });

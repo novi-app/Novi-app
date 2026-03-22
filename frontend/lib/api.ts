@@ -27,6 +27,7 @@ async function fetchAPI<T>(endpoint: string, options: RequestInit = {}): Promise
     return response.json();
   } catch (error) {
     if (error instanceof APIError) throw error;
+    console.error("[API] fetch failed:", error);
     throw new Error("Network error. Please check your connection.");
   }
 }
@@ -35,7 +36,8 @@ export async function getRecommendations(
   userId: string,
   location: { latitude: number; longitude: number },
   activity: string = "any",
-  sessionPreferences?: SessionPreferences
+  sessionPreferences?: SessionPreferences,
+  limit: number = 12
 ): Promise<{ recommendations: Venue[]; count: number }> {
   return fetchAPI("/api/recommendations", {
     method: "POST",
@@ -44,6 +46,7 @@ export async function getRecommendations(
       location,
       activity,
       session_preferences: sessionPreferences,
+      limit,
     }),
   });
 }

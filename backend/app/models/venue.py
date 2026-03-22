@@ -9,5 +9,6 @@ class RecommendationRequest(BaseModel):
     user_id: str
     location: LocationInput
     activity: str = "any"
-    session_preferences: Optional[dict] = None 
+    session_preferences: Optional[dict] = None
+    limit: int = 12
     
