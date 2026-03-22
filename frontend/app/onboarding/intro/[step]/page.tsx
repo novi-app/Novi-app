@@ -1,9 +1,11 @@
 "use client";
 
-import { useEffect } from "react";
+import { useEffect, useState } from "react";
 import { useRouter, useParams } from "next/navigation";
 import Image from "next/image";
 import { LS_USER_ID } from "@/lib/onboarding";
+import { trackOnboardingStepCompleted } from "@/lib/analytics";
+import { useOnboardingAbandoned } from "@/hooks/useOnboardingAbandoned";
 
 export function OnboardingHeader({ current, onBack, darkBg = false }: {
   current: number;
@@ -92,6 +94,9 @@ export default function IntroStepPage() {
   const step   = Number(params.step);
   const idx    = step - 1;
   const screen = SCREENS[idx];
+  const stepName = step === 1 ? "INTRO_1" : "INTRO_2" as const;
+  const [startTime] = useState(Date.now());
+  const markCompleted = useOnboardingAbandoned(step, stepName);
 
   useEffect(() => {
     if (localStorage.getItem(LS_USER_ID)) {
@@ -105,6 +110,8 @@ export default function IntroStepPage() {
   }
 
   const handleNext = () => {
+    markCompleted();
+    trackOnboardingStepCompleted(step, stepName, "", Math.round((Date.now() - startTime) / 1000));
     if (step < 2) {
       router.push(`/onboarding/intro/${step + 1}`);
     } else {

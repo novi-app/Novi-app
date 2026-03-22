@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { OnboardingHeader } from "../intro/[step]/page";
 import { trackOnboardingStepCompleted } from "@/lib/analytics";
+import { useOnboardingAbandoned } from "@/hooks/useOnboardingAbandoned";
 import { ACTIVITY, LS_ACTIVITY, LS_USER_ID } from "@/lib/onboarding";
 
 
@@ -11,6 +12,7 @@ export default function ActivityPage() {
   const router = useRouter();
   const [selected, setSelected] = useState<string[]>([]);
   const [startTime] = useState(Date.now());
+  const markCompleted = useOnboardingAbandoned(4, "ACTIVITY");
 
   useEffect(() => {
     if (localStorage.getItem(LS_USER_ID)) {
@@ -31,7 +33,8 @@ export default function ActivityPage() {
     localStorage.setItem(LS_ACTIVITY, JSON.stringify(selected));
     
     const timeOnStep = Math.round((Date.now() - startTime) / 1000);
-    trackOnboardingStepCompleted(2, "ACTIVITY", selected, timeOnStep);
+    markCompleted();
+    trackOnboardingStepCompleted(4, "ACTIVITY", selected, timeOnStep);
     
     router.push("/onboarding/dietary");
   };

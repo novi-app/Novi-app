@@ -3,9 +3,11 @@
 import { useState } from "react";
 import Image from "next/image";
 import type { Venue } from "@/lib/types";
+import { useViewportTracking } from "@/hooks/useViewportTracking";
 
 interface VenueCardProps {
   venue: Venue;
+  cardPosition: number;
   size?: "large" | "small";
   saved?: boolean;
   onSaveToggle?: () => void;
@@ -15,6 +17,7 @@ interface VenueCardProps {
 
 export default function VenueCard({
   venue,
+  cardPosition,
   size = "small",
   saved = false,
   onSaveToggle,
@@ -22,6 +25,7 @@ export default function VenueCard({
   onDirections,
 }: VenueCardProps) {
   const [isSaving, setIsSaving] = useState(false);
+  const setRef = useViewportTracking(venue.venue_id, venue.name, venue.category, cardPosition);
 
   const priceSymbol = venue.price_level > 0 ? "¥".repeat(venue.price_level) : "FREE";
   const isLarge = size === "large";
@@ -101,7 +105,7 @@ export default function VenueCard({
 
   if (isLarge) {
     return (
-      <div className="bg-white rounded-2xl overflow-hidden">
+      <div ref={setRef} className="bg-white rounded-2xl overflow-hidden">
         <div className="relative h-64 bg-gray-100">
           {venue.photo ? (
             <Image src={venue.photo} alt={venue.name} fill className="object-cover" priority unoptimized />
@@ -126,7 +130,7 @@ export default function VenueCard({
   }
 
   return (
-    <div className="bg-white rounded-2xl overflow-hidden mb-4">
+    <div ref={setRef} className="bg-white rounded-2xl overflow-hidden mb-4">
       <div className="flex p-3 gap-3 mb-2">
         <div className="relative w-24 h-24 flex-shrink-0 rounded-xl overflow-hidden bg-gray-100">
           {venue.photo ? (

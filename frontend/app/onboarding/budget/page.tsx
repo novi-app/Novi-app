@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { OnboardingHeader } from "../intro/[step]/page";
 import { trackOnboardingStepCompleted, trackOnboardingCompleted, identifyUser, getDeviceType } from "@/lib/analytics";
+import { useOnboardingAbandoned } from "@/hooks/useOnboardingAbandoned";
 import { BUDGET, LS_BUDGET, LS_USER_ID, LS_USER_NAME, LS_ACTIVITY, LS_DIETARY } from "@/lib/onboarding";
 
 
@@ -12,6 +13,7 @@ export default function BudgetPage() {
   const [selected, setSelected] = useState<number | null>(null);
   const [isSubmitting, setIsSubmitting] = useState(false);
   const [startTime] = useState(Date.now());
+  const markCompleted = useOnboardingAbandoned(6, "BUDGET");
   const [onboardingStartTime] = useState(() => {
     if (typeof window === "undefined") return Date.now();
     const stored = sessionStorage.getItem("onboarding_start_time");
@@ -35,7 +37,8 @@ export default function BudgetPage() {
 
     localStorage.setItem(LS_BUDGET, selected.toString());
     const timeOnStep = Math.round((Date.now() - startTime) / 1000);
-    trackOnboardingStepCompleted(4, "BUDGET", selected, timeOnStep);
+    markCompleted();
+    trackOnboardingStepCompleted(6, "BUDGET", selected, timeOnStep);
 
     const savedName = localStorage.getItem(LS_USER_NAME);
     if (!savedName) {

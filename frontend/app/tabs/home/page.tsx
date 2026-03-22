@@ -5,7 +5,7 @@ import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { getTrendingVenues, saveVenue, unsaveVenue, getSavedVenues, getRecommendations } from "@/lib/api";
 import type { TrendingVenue, Venue } from "@/lib/types";
-import { trackRecommendationsViewed } from "@/lib/analytics";
+import { trackRecommendationsViewed, trackVenueSaved } from "@/lib/analytics";
 import { LS_USER_ID, LS_USER_NAME, ACTIVITY } from "@/lib/onboarding";
 import TrendingVenueCard, { TrendingVenueCardSkeleton } from "@/components/trendingVenueCard";
 import { SpinningGlobe } from "@/components/spinningGlobe";
@@ -220,11 +220,12 @@ export default function HomePage() {
       const shown: string[] = JSON.parse(sessionStorage.getItem("cached_novi_shown") ?? "[]");
       const available = pool.filter(v => !shown.includes(v.venue_id));
 
+      trackRecommendationsViewed(0, "surprise_me", location);
+
       if (available.length > 0) {
         await new Promise(resolve => setTimeout(resolve, 1000));
         const pick = available[0];
         sessionStorage.setItem("cached_novi_shown", JSON.stringify([...shown, pick.venue_id]));
-        trackRecommendationsViewed(0, "surprise_me", location);
         setNoviPickVenue(pick);
         if (available.length <= 2) {
           sessionStorage.removeItem("cached_novi_pool");
@@ -234,7 +235,6 @@ export default function HomePage() {
         sessionStorage.removeItem("cached_novi_pool");
         sessionStorage.removeItem("cached_novi_shown");
         const userId = localStorage.getItem(LS_USER_ID) ?? "anonymous";
-        trackRecommendationsViewed(0, "surprise_me", location);
         const result = await getRecommendations(userId, location, "any");
         if (result.recommendations.length > 0) {
           const open = result.recommendations.filter(v => isVenueOpenNow(v.opening_hours));
@@ -365,6 +365,7 @@ export default function HomePage() {
       : [...cachedVenues, { ...venue, distance_km: 0, solo_score: 0, similarity_score: 0, combined_score: 0, saved_at: new Date().toISOString() }];
     sessionStorage.setItem("cached_saved_ids", JSON.stringify([...nextIds]));
     localStorage.setItem("cached_saved_venues", JSON.stringify({ data: updatedVenues, savedAt: Date.now() }));
+    trackVenueSaved(venue.venue_id, venue.name, venue.category, alreadySaved ? "unsaved" : "saved", "home");
     try {
       alreadySaved
         ? await unsaveVenue(userId, venue.venue_id)

@@ -4,7 +4,7 @@ import { useState, useEffect, useRef } from "react";
 import { useRouter } from "next/navigation";
 import Image from "next/image";
 import { getSavedVenues, unsaveVenue } from "@/lib/api";
-import { trackDirectionsClicked } from "@/lib/analytics";
+import { trackDirectionsClicked, trackVenueSaved, trackInterventionShown, trackInterventionResponse } from "@/lib/analytics";
 import { LS_USER_ID } from "@/lib/onboarding";
 import VenueDetailsModal from "@/components/venueDetailsModal";
 import { InterventionModal, type InterventionVenue } from "@/components/interventionModal";
@@ -35,6 +35,7 @@ export default function SavedPage() {
   const [nudgePendingVenue, setNudgePendingVenue] = useState<Venue | null>(null);
   const venueTappedRef = useRef(false);
   const venuesRef = useRef<Venue[]>([]);
+  const nudgeShownAt = useRef(0);
   venuesRef.current = venues;
 
   useEffect(() => {
@@ -54,42 +55,30 @@ export default function SavedPage() {
 
       const current = venuesRef.current;
 
+      let pick: import("@/lib/types").Venue | null = null;
       if (current.length > 0) {
-        // Pick from their saved list
-        const pick = current[Math.floor(Math.random() * Math.min(current.length, 3))];
-        setNudgePendingVenue(pick);
-        setNudgeVenue({
-          id: pick.venue_id,
-          name: pick.name,
-          photo: pick.photo,
-          category: pick.category,
-          rating: pick.rating,
-          reviews_count: pick.reviews_count,
-          price_level: pick.price_level,
-          tags: pick.tags,
-          solo_reason: pick.solo_reason,
-          distance_km: pick.distance_km,
-        });
+        pick = current[Math.floor(Math.random() * Math.min(current.length, 3))];
       } else {
-        // No saved venues — fall back to pool
         const pool: import("@/lib/types").Venue[] = JSON.parse(sessionStorage.getItem("cached_novi_pool") ?? "[]");
         const shown: string[] = JSON.parse(sessionStorage.getItem("cached_novi_shown") ?? "[]");
-        const pick = pool.filter(v => !shown.includes(v.venue_id))[0] ?? null;
-        if (!pick) return;
-        setNudgePendingVenue(pick);
-        setNudgeVenue({
-          id: pick.venue_id,
-          name: pick.name,
-          photo: pick.photo,
-          category: pick.category,
-          rating: pick.rating,
-          reviews_count: pick.reviews_count,
-          price_level: pick.price_level,
-          tags: pick.tags,
-          solo_reason: pick.solo_reason,
-          distance_km: pick.distance_km,
-        });
+        pick = pool.filter(v => !shown.includes(v.venue_id))[0] ?? null;
       }
+      if (!pick) return;
+      nudgeShownAt.current = Date.now();
+      setNudgePendingVenue(pick);
+      setNudgeVenue({
+        id: pick.venue_id,
+        name: pick.name,
+        photo: pick.photo,
+        category: pick.category,
+        rating: pick.rating,
+        reviews_count: pick.reviews_count,
+        price_level: pick.price_level,
+        tags: pick.tags,
+        solo_reason: pick.solo_reason,
+        distance_km: pick.distance_km,
+      });
+      trackInterventionShown("GENTLE", "exploration_stall", pick.venue_id, pick.name, 40);
     }, 40_000);
 
     return () => clearTimeout(timer);
@@ -132,6 +121,9 @@ export default function SavedPage() {
   const handleUnsave = async (venueId: string) => {
     const userId = localStorage.getItem(LS_USER_ID);
     if (!userId) return;
+
+    const target = venues.find((v) => v.venue_id === venueId);
+    if (target) trackVenueSaved(target.venue_id, target.name, target.category, "unsaved", "saved");
 
     setVenues((prev) => {
       const updated = prev.filter((v) => v.venue_id !== venueId);
@@ -248,11 +240,13 @@ export default function SavedPage() {
       <InterventionModal
         isOpen={nudgeVenue !== null}
         onDismiss={() => {
+          trackInterventionResponse("GENTLE", "dismissed", Math.round((Date.now() - nudgeShownAt.current) / 1000), 0);
           localStorage.setItem(FREEZE_COOLDOWN_KEY, String(Date.now() + 120_000));
           setNudgeVenue(null);
           setNudgePendingVenue(null);
         }}
         onAccept={() => {
+          trackInterventionResponse("GENTLE", "accepted", Math.round((Date.now() - nudgeShownAt.current) / 1000), 0);
           localStorage.setItem(FREEZE_COOLDOWN_KEY, String(Date.now() + 120_000));
           if (nudgePendingVenue) {
             setSelectedVenue(nudgePendingVenue);

@@ -21,7 +21,7 @@ async function initFirebase() {
   }
   
   if (!sessionId) {
-    sessionId = `session_${Date.now()}_${Math.random().toString(36).substr(2, 9)}`;
+    sessionId = `session_${Date.now()}_${Math.random().toString(36).slice(2, 11)}`;
   }
   
   return firebaseAnalytics;
@@ -50,9 +50,24 @@ function initMixpanel() {
   }
 }
 
+const sessionStartedAt = typeof window !== "undefined" ? Date.now() : 0;
+
 async function initAnalytics() {
   await initFirebase();
   initMixpanel();
+
+  const isReturning = !!localStorage.getItem("novi_user_id");
+  trackEvent("session_started", {
+    entry_page: window.location.pathname,
+    is_returning_user: isReturning,
+  });
+
+  window.addEventListener("beforeunload", () => {
+    trackEvent("session_ended", {
+      session_duration_seconds: Math.round((Date.now() - sessionStartedAt) / 1000),
+      exit_page: window.location.pathname,
+    });
+  }, { once: true });
 }
 
 if (typeof window !== "undefined") {
@@ -168,6 +183,17 @@ export const trackOnboardingCompleted = (
     activity_selections: activitySelections,
   });
 
+export const trackOnboardingAbandoned = (
+  stepAbandoned: number,
+  stepName: StepName,
+  timeBeforeAbandonSeconds: number
+) =>
+  trackEvent("onboarding_abandoned", {
+    step_abandoned: stepAbandoned,
+    step_name: stepName,
+    time_before_abandon_seconds: timeBeforeAbandonSeconds,
+  });
+
 export const trackRecommendationsViewed = (
   count: number,
   activityFilter: string,
@@ -194,17 +220,6 @@ export const trackRecommendationCardClicked = (
     card_position: cardPosition,
     combined_score: combinedScore,
     distance_km: distanceKm,
-  });
-
-export const trackFilterChanged = (
-  previousFilter: string,
-  newFilter: string,
-  changeCount: number
-) => 
-  trackEvent("filter_changed", {
-    previous_filter: previousFilter,
-    new_filter: newFilter,
-    change_count: changeCount,
   });
 
 export const trackFreezeDetected = (
@@ -277,6 +292,21 @@ export const trackRecommendationDetailsViewed = (
     card_position: cardPosition,
     combined_score: combinedScore,
     distance_km: distanceKm,
+  });
+
+export const trackVenueSaved = (
+  venueId: string,
+  venueName: string,
+  venueCategory: string,
+  action: "saved" | "unsaved",
+  source: "home" | "recommendations" | "saved"
+) =>
+  (trackEvent as (name: string, props: Record<string, unknown>) => void)("venue_save_toggled", {
+    venue_id: venueId,
+    venue_name: venueName,
+    venue_category: venueCategory,
+    action,
+    source,
   });
 
 export const trackRouteCheck = (

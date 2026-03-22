@@ -4,6 +4,7 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { OnboardingHeader } from "../intro/[step]/page";
 import { trackOnboardingStepCompleted } from "@/lib/analytics";
+import { useOnboardingAbandoned } from "@/hooks/useOnboardingAbandoned";
 import { DIETARY, LS_DIETARY, LS_USER_ID } from "@/lib/onboarding";
 
 
@@ -11,6 +12,7 @@ export default function DietaryPage() {
   const router = useRouter();
   const [selected, setSelected] = useState<string[]>([]);
   const [startTime] = useState(Date.now());
+  const markCompleted = useOnboardingAbandoned(5, "DIETARY");
 
   useEffect(() => {
     if (localStorage.getItem(LS_USER_ID)) {
@@ -35,7 +37,8 @@ export default function DietaryPage() {
     localStorage.setItem(LS_DIETARY, JSON.stringify(selected));
     
     const timeOnStep = Math.round((Date.now() - startTime) / 1000);
-    trackOnboardingStepCompleted(3, "DIETARY", selected, timeOnStep);
+    markCompleted();
+    trackOnboardingStepCompleted(5, "DIETARY", selected, timeOnStep);
     
     router.push("/onboarding/budget");
   };

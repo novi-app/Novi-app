@@ -7,6 +7,8 @@
  */
 
 export type EventName =
+  | "session_started"
+  | "session_ended"
   | "onboarding_started"
   | "onboarding_step_completed"
   | "onboarding_completed"
@@ -15,15 +17,13 @@ export type EventName =
   | "recommendations_viewed"
   | "recommendation_card_clicked"
   | "recommendation_details_viewed"
-  | "filter_changed"
-  | "refresh_clicked"
-  
   | "freeze_detected"
   | "intervention_shown"
   | "intervention_dismissed"
   | "intervention_accepted"
   
   | "directions_clicked"
+  | "venue_save_toggled"
   | "external_link_opened"
 
   | "venue_view"
@@ -41,7 +41,7 @@ export type FreezeRuleType =
 
 export type InterventionLevel = "GENTLE" | "MODERATE" | "URGENT";
 
-export type StepName =  "NAME" | "ACTIVITY" | "DIETARY" | "BUDGET"
+export type StepName = "INTRO_1" | "INTRO_2" | "NAME" | "ACTIVITY" | "DIETARY" | "BUDGET" | "FINISH"
 
 export interface BaseEventProperties {
   session_id: string;
@@ -51,6 +51,16 @@ export interface BaseEventProperties {
   page_title: string;
   device_type: "mobile" | "tablet" | "desktop";
   browser: string;
+}
+
+export interface SessionStartedProperties extends BaseEventProperties {
+  entry_page: string;
+  is_returning_user: boolean;
+}
+
+export interface SessionEndedProperties extends BaseEventProperties {
+  session_duration_seconds: number;
+  exit_page: string;
 }
 
 export interface OnboardingStepCompletedProperties extends BaseEventProperties {
@@ -87,12 +97,6 @@ export interface RecommendationCardClickedProperties extends BaseEventProperties
   card_position: number;
   combined_score: number;
   distance_km: number;
-}
-
-export interface FilterChangedProperties extends BaseEventProperties {
-  previous_filter: string;
-  new_filter: string;
-  change_count: number;
 }
 
 export interface FreezeDetectedProperties extends BaseEventProperties {
@@ -166,7 +170,9 @@ export interface BackButtonProperties extends BaseEventProperties {
   time_on_page_seconds: number;
 }
 
-export type EventProperties<T extends EventName> = 
+export type EventProperties<T extends EventName> =
+  T extends "session_started" ? SessionStartedProperties :
+  T extends "session_ended" ? SessionEndedProperties :
   T extends "onboarding_started" ? BaseEventProperties :
   T extends "onboarding_step_completed" ? OnboardingStepCompletedProperties :
   T extends "onboarding_completed" ? OnboardingCompletedProperties :
@@ -174,9 +180,7 @@ export type EventProperties<T extends EventName> =
   T extends "recommendations_viewed" ? RecommendationsViewedProperties :
   T extends "recommendation_card_clicked" ? RecommendationCardClickedProperties :
   T extends "recommendation_details_viewed" ? RecommendationCardClickedProperties :
-  T extends "filter_changed" ? FilterChangedProperties :
-  T extends "refresh_clicked" ? BaseEventProperties :
-  T extends "freeze_detected" ? FreezeDetectedProperties :
+T extends "freeze_detected" ? FreezeDetectedProperties :
   T extends "intervention_shown" ? InterventionShownProperties :
   T extends "intervention_dismissed" ? InterventionResponseProperties :
   T extends "intervention_accepted" ? InterventionResponseProperties :

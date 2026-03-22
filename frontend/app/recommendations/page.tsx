@@ -3,7 +3,7 @@
 import { useState, useEffect, useRef, Suspense } from "react";
 import { useRouter, useSearchParams } from "next/navigation";
 import { getRecommendations, saveVenue, unsaveVenue, getUserProfile } from "@/lib/api";
-import { trackDirectionsClicked, trackRecommendationDetailsViewed, trackFreezeDetected, trackInterventionShown, trackInterventionResponse, trackRecommendationsViewed } from "@/lib/analytics";
+import { trackDirectionsClicked, trackRecommendationDetailsViewed, trackFreezeDetected, trackInterventionShown, trackInterventionResponse, trackRecommendationsViewed, trackVenueSaved } from "@/lib/analytics";
 import { useFreezeDetection } from "@/hooks/useFreezeDetection";
 import { useScrollDistance } from "@/hooks/useScrollDistance";
 import { InterventionModal } from "@/components/interventionModal";
@@ -38,6 +38,7 @@ function Page () {
   const [dismissalCount, setDismissalCount] = useState(0);
   const showInterventionRef = useRef(false);
   const [hasTrackedView, setHasTrackedView] = useState(false);
+  const venuesLoadedAt = useRef(0);
 
   const activity = searchParams.get("activity") || "any";
   const vibe = searchParams.get("vibe");
@@ -84,7 +85,7 @@ function Page () {
         event.rule,
         recommendedVenue.venue_id,
         recommendedVenue.name,
-        0
+        venuesLoadedAt.current ? Math.round((Date.now() - venuesLoadedAt.current) / 1000) : 0
       );
     },
   });
@@ -106,6 +107,7 @@ function Page () {
 
   useEffect(() => {
     if (!isLoading && venues.length > 0 && !hasTrackedView) {
+      venuesLoadedAt.current = Date.now();
       console.log("📊 Tracking recommendations viewed:", venues.length);
       trackRecommendationsViewed(venues.length, activity, { latitude, longitude });
       setHasTrackedView(true);
@@ -185,6 +187,7 @@ function Page () {
       newSaved.add(venue.venue_id);
     }
     setSavedVenueIds(newSaved);
+    trackVenueSaved(venue.venue_id, venue.name, venue.category, isSaved ? "unsaved" : "saved", "recommendations");
     const savedRaw = localStorage.getItem("cached_saved_venues");
     const cachedVenues: Venue[] = savedRaw ? (JSON.parse(savedRaw).data ?? []) : [];
     const updatedCache = isSaved
@@ -369,6 +372,7 @@ function Page () {
             </h2>
             <VenueCard
               venue={topVenue}
+              cardPosition={0}
               size="large"
               saved={savedVenueIds.has(topVenue.venue_id)}
               onSaveToggle={() => handleSaveToggle(topVenue)}
@@ -388,6 +392,7 @@ function Page () {
                 <VenueCard
                   key={venue.venue_id}
                   venue={venue}
+                  cardPosition={index + 1}
                   size="small"
                   saved={savedVenueIds.has(venue.venue_id)}
                   onSaveToggle={() => handleSaveToggle(venue)}
@@ -404,7 +409,7 @@ function Page () {
             onClick={() => setShowAll(true)}
             className="w-full py-4 border-2 border-primary text-primary font-semibold rounded-full active:scale-[0.98] transition-transform flex items-center justify-center gap-2"
           >
-            Show {moreOptions.length} more options
+            Show me more options
             <svg className="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
               <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M19 9l-7 7-7-7" />
             </svg>
@@ -420,6 +425,7 @@ function Page () {
               >
                 <VenueCard
                   venue={venue}
+                  cardPosition={index + 5}
                   size="small"
                   saved={savedVenueIds.has(venue.venue_id)}
                   onSaveToggle={() => handleSaveToggle(venue)}
@@ -428,6 +434,12 @@ function Page () {
                 />
               </div>
             ))}
+            <p
+              className="text-center text-sm text-gray-600 pt-4 pb-2"
+              style={{ animation: `fadeIn 0.3s ease-out ${moreOptions.length * 60}ms both` }}
+            >
+              You've explored everything here
+            </p>
           </div>
         )}
       </div>

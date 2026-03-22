@@ -4,12 +4,14 @@ import { useState, useEffect } from "react";
 import { useRouter } from "next/navigation";
 import { OnboardingHeader } from "../intro/[step]/page";
 import { trackOnboardingStepCompleted } from "@/lib/analytics";
+import { useOnboardingAbandoned } from "@/hooks/useOnboardingAbandoned";
 import { LS_USER_NAME, LS_USER_ID } from "@/lib/onboarding";
 
 export default function NamePage() {
   const router = useRouter();
   const [name, setName] = useState("");
   const [startTime] = useState(Date.now());
+  const markCompleted = useOnboardingAbandoned(3, "NAME");
 
   useEffect(() => {
     if (localStorage.getItem(LS_USER_ID)) {
@@ -29,7 +31,8 @@ export default function NamePage() {
     console.log("trimmed name: " + trimmedName + " stored: " + localStorage.getItem(LS_USER_NAME))
     
     const timeOnStep = Math.round((Date.now() - startTime) / 1000);
-    trackOnboardingStepCompleted(1, "NAME", trimmedName, timeOnStep);
+    markCompleted();
+    trackOnboardingStepCompleted(3, "NAME", trimmedName, timeOnStep);
     
     router.push("/onboarding/activity");
   };
