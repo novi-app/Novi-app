@@ -144,7 +144,9 @@ def get_recommendations(
         else:
             continue
         
-        adjusted_score = similarity * (1 - distance_penalty)
+        rating = venue.get("rating") or 0
+        normalized_rating = rating / 5.0
+        adjusted_score = (similarity * 0.7 + normalized_rating * 0.3) * (1 - distance_penalty)
         
         result = {
             "venue_id": venue.get("doc_id") or venue.get("place_id"),
