@@ -3,6 +3,7 @@
 import Image from "next/image";
 import { useState } from "react";
 import type { TrendingVenue } from "@/lib/types";
+import { formatWalkTime } from "@/lib/format";
 
 interface TrendingVenueCardProps {
   venue: TrendingVenue;
@@ -26,12 +27,12 @@ function haversineKm(lat1: number, lng1: number, lat2: number, lng2: number): nu
   return R * 2 * Math.atan2(Math.sqrt(a), Math.sqrt(1 - a));
 }
 
-function walkMinutes(venue: TrendingVenue): number {
+function walkTime(venue: TrendingVenue): string {
   const km = haversineKm(
     USER_LOCATION.latitude, USER_LOCATION.longitude,
     venue.location.latitude, venue.location.longitude
   );
-  return Math.max(1, Math.round((km / 5) * 60));
+  return formatWalkTime(km);
 }
 
 export function TrendingVenueCardSkeleton() {
@@ -60,7 +61,7 @@ export default function TrendingVenueCard({
   isSaved,
 }: TrendingVenueCardProps) {
   const [imgLoaded, setImgLoaded] = useState(false);
-  const mins = walkMinutes(venue);
+  const mins = walkTime(venue);
   const displayTag = venue.tags?.find((t) => t !== "Solo Friendly") ?? venue.tags?.[0];
 
 
@@ -121,7 +122,7 @@ export default function TrendingVenueCard({
             <path strokeLinecap="round" strokeLinejoin="round" d="M15 11a3 3 0 11-6 0 3 3 0 016 0z" />
           </svg>
           <span className="text-gray-500" style={{ fontSize: "clamp(10px, 2.5vw, 12px)" }}>
-            {mins} min walk
+            {mins}
           </span>
         </div>
 

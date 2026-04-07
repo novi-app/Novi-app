@@ -4,6 +4,7 @@ import { useState } from "react";
 import Image from "next/image";
 import type { Venue } from "@/lib/types";
 import { useViewportTracking } from "@/hooks/useViewportTracking";
+import { formatWalkTime } from "@/lib/format";
 
 interface VenueCardProps {
   venue: Venue;
@@ -81,7 +82,7 @@ export default function VenueCard({
       <span className="text-gray-400"></span>
       <span className="text-gray-600 text-sm flex items-center gap-1">
         {walkingIcon}
-        {Math.round(venue.distance_km / 5 * 60)} min walk
+        {formatWalkTime(venue.distance_km)}
       </span>
     </div>
   );

@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import type { Venue } from "@/lib/types";
+import { formatWalkTime } from "@/lib/format";
 
 interface NoviPickModalProps {
   venue: Venue;
@@ -34,7 +35,7 @@ export default function NoviPickModal({ venue, onClose, onDetails, onDirections 
   };
 
   const priceSymbol = venue.price_level > 0 ? "¥".repeat(venue.price_level) : "FREE";
-  const walkMins = Math.round((venue.distance_km / 5) * 60);
+  const walkMins = formatWalkTime(venue.distance_km);
   const displayTag = venue.tags?.find((t) => t !== "Solo Friendly") ?? venue.tags?.[0];
 
   const walkingIcon = (
@@ -88,7 +89,7 @@ export default function NoviPickModal({ venue, onClose, onDetails, onDirections 
             <span className="text-gray-400">·</span>
             <span className="text-gray-600 text-sm flex items-center gap-1">
               {walkingIcon}
-              {walkMins} min walk
+              {walkMins}
             </span>
             <span className="text-gray-400">·</span>
             <span className="text-gray-700">{venue.category}</span>

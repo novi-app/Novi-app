@@ -3,6 +3,7 @@
 import { useEffect, useRef, useState } from "react";
 import Image from "next/image";
 import type { Venue } from "@/lib/types";
+import { formatWalkTime } from "@/lib/format";
 
 interface VenueDetailsModalProps {
   venue: Venue;
@@ -89,7 +90,7 @@ export default function VenueDetailsModal({ venue, onClose, onDirections }: Venu
             <span className="text-gray-400">·</span>
             <span className="text-gray-600 text-sm flex items-center gap-1">
         {walkingIcon}
-        {Math.max(1, Math.round(haversineKm(USER_LOCATION.latitude, USER_LOCATION.longitude, venue.location.latitude, venue.location.longitude) / 5 * 60))} min walk
+        {formatWalkTime(haversineKm(USER_LOCATION.latitude, USER_LOCATION.longitude, venue.location.latitude, venue.location.longitude))}
       </span>
       <span className="text-gray-400">·</span>
                   <span className="text-gray-700">{venue.category}</span>
