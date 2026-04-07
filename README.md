@@ -1,4 +1,4 @@
-# Novi · Your AI travel companion in Tokyo
+# Novi · Your AI travel companion in Tokyo · MVP
 
 Novi is a mobile-first AI travel companion for solo travelers in Tokyo. It eliminates decision paralysis by learning your preferences and surfacing the right venue at the right moment. No endless scrolling, no overwhelm.
 
