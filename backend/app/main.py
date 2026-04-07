@@ -1,7 +1,7 @@
 from fastapi import FastAPI
 from fastapi.middleware.cors import CORSMiddleware
 from config import settings
-from app.routers import analytics, interventions, recommendations, user, venues
+from app.routers import analytics, recommendations, user, venues
 
 app = FastAPI(
     title="Novi API",
@@ -57,4 +57,3 @@ app.include_router(user.router)
 app.include_router(recommendations.router)
 app.include_router(venues.router)
 app.include_router(analytics.router)
-app.include_router(interventions.router)

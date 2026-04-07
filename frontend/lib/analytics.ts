@@ -205,23 +205,6 @@ export const trackRecommendationsViewed = (
     user_location: userLocation,
   });
 
-export const trackRecommendationCardClicked = (
-  venueId: string,
-  venueName: string,
-  venueCategory: string,
-  cardPosition: number,
-  combinedScore: number,
-  distanceKm: number
-) => 
-  trackEvent("recommendation_card_clicked", {
-    venue_id: venueId,
-    venue_name: venueName,
-    venue_category: venueCategory,
-    card_position: cardPosition,
-    combined_score: combinedScore,
-    distance_km: distanceKm,
-  });
-
 export const trackFreezeDetected = (
   ruleType: string,
   level: "GENTLE" | "MODERATE" | "URGENT",
