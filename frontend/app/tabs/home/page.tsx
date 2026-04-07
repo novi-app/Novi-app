@@ -266,6 +266,8 @@ export default function HomePage() {
   };
 
   const triggerSelectionIntervention = (currentActivity: string | null, currentVibe: string | null) => {
+    const shown: string[] = JSON.parse(sessionStorage.getItem("cached_novi_shown") ?? "[]");
+
     // Prefer a prefetched recommendation tailored to the user's current selection
     let pick: Venue | null = null;
     if (currentActivity && currentVibe) {
@@ -274,7 +276,8 @@ export default function HomePage() {
         if (cached) {
           try {
             const recs: Venue[] = JSON.parse(cached);
-            if (recs.length > 0) { pick = recs[0]; break; }
+            const available = recs.filter(v => !shown.includes(v.venue_id));
+            if (available.length > 0) { pick = available[0]; break; }
           } catch {}
         }
       }
@@ -282,7 +285,6 @@ export default function HomePage() {
     // Fall back to the generic Novi pool
     if (!pick) {
       const pool: Venue[] = JSON.parse(sessionStorage.getItem("cached_novi_pool") ?? "[]");
-      const shown: string[] = JSON.parse(sessionStorage.getItem("cached_novi_shown") ?? "[]");
       pick = pool.filter(v => !shown.includes(v.venue_id))[0] ?? null;
     }
 
