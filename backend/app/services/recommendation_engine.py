@@ -83,7 +83,7 @@ def get_recommendations(
     user_lon: float,
     session_preferences: Optional[dict] = None,
     activity: str = "any",
-    radius_km: float = 30.0,
+    radius_km: float = 20.0,
     limit: int = 5
 ) -> List[Dict[str, Any]]:
     
@@ -138,9 +138,9 @@ def get_recommendations(
         if distance <= 5:
             distance_penalty = 0.0
         elif distance <= 15:
-            distance_penalty = 0.1
-        elif distance <= 30:
-            distance_penalty = 0.2
+            distance_penalty = 0.25
+        elif distance <= 20:
+            distance_penalty = 0.5
         else:
             continue
         
